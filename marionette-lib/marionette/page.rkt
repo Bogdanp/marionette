@@ -28,9 +28,12 @@
  page-execute!
  page-execute-async!
 
+ page-wait-for!
  page-query-selector!
  page-query-selector-all!
 
+ page-interactive?
+ page-loaded?
  page-title
  page-url
  page-content
@@ -145,6 +148,103 @@ SCRIPT
   (-> page? string? void?)
   (void
    (page-execute! p "document.documentElement.innerHTML = arguments[0]" c)))
+
+(define/contract (page-interactive? p)
+  (-> page? boolean?)
+  (page-execute! p "return [\"interactive\", \"complete\"].indexOf(document.readyState) !== -1"))
+
+(define/contract (page-loaded? p)
+  (-> page? boolean?)
+  (page-execute! p "return document.readyState === \"complete\""))
+
+(define wait-for-element-script #<<SCRIPT
+const [selector, mustBeVisible] = arguments;
+
+let node;
+let resolve;
+let observer;
+const res = new Promise(r => resolve = function(res) {
+  observer && observer.disconnect();
+  return r(res);
+});
+
+bootstrap();
+return res;
+
+function bootstrap() {
+  if (node = findNode()) {
+    return resolve(node);
+  }
+
+  observer = new MutationObserver(() => {
+    if (node = findNode()) {
+      return resolve(node);
+    }
+  });
+
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+  });
+
+  return res;
+}
+
+function isVisible(node) {
+    const { visibility } = window.getComputedStyle(node) || {};
+    const { top, bottom, width, height } = node.getBoundingClientRect();
+    return visibility !== "hidden" && top && bottom && width && height;
+}
+
+function findNode() {
+  const node = document.querySelector(selector);
+  if (node && (mustBeVisible && isVisible(node) || !mustBeVisible)) {
+    return node;
+  }
+
+  return null;
+}
+SCRIPT
+  )
+
+(define/contract (page-wait-for! p selector
+                                 #:timeout [timeout 30000]
+                                 #:visible? [visible? #t])
+  (->* (page? non-empty-string?)
+       (#:timeout exact-nonnegative-integer?)
+       (or/c false/c element?))
+
+  (define chan (make-channel))
+  (define waiter
+    (thread
+     (lambda _
+       (let outer-loop ()
+         (let inner-loop ()
+           (unless (page-loaded? p)
+             (sync (system-idle-evt))
+             (inner-loop)))
+
+         (define handle
+           (with-handlers ([exn:fail?
+                            (lambda (e)
+                              (cond
+                                [(string-contains? (exn-message e) "unloaded")
+                                 (outer-loop)]
+
+                                [else
+                                 (raise e)]))])
+             (page-execute-async! p wait-for-element-script selector visible?)))
+
+         (channel-put chan (and handle (page-query-selector! p selector)))))))
+
+  (sync
+   chan
+   (handle-evt
+    (alarm-evt (+ (current-inexact-milliseconds) timeout))
+    (lambda _
+      (begin0 #f
+        (kill-thread waiter))))))
 
 (define/contract (page-query-selector! p selector)
   (-> page? non-empty-string? (or/c false/c element?))

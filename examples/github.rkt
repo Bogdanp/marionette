@@ -13,7 +13,7 @@
 
        (element-type! search-bar "Bogdanp/marionette")
        (page-execute-async! p "arguments[0].closest(\"form\").submit()" (element-handle search-bar))
-       (sleep 1) ;; TODO: add a wait to wait for page loads.
+       (page-wait-for! p ".repo-list")
 
        (call-with-page-screenshot! p
          (lambda (data)
