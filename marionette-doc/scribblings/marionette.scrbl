@@ -251,8 +251,8 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 
 @defstruct[rect ([x exact-integer?]
                  [y exact-integer?]
-                 [w exact-nonnegative-integer?]
-                 [h exact-nonnegative-integer?])]{
+                 [w natural?]
+                 [h natural?])]{
 
   This struct is used to represent an element's bounding client rect.
 }

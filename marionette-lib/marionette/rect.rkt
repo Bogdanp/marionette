@@ -6,8 +6,8 @@
  (contract-out
   [struct rect ([x exact-integer?]
                 [y exact-integer?]
-                [w exact-nonnegative-integer?]
-                [h exact-nonnegative-integer?])]))
+                [w real?]
+                [h real?])]))
 
 (struct rect (x y w h)
   #:transparent)
