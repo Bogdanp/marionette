@@ -52,11 +52,11 @@
 (define/contract (marionette-connect! m)
   (-> marionette? jsexpr?)
   (transport-connect! (marionette-transport m))
-  (sync (marionette-send! m "WebDriver:NewSession" (hasheq 'capabilities (hasheq)))))
+  (sync (marionette-new-session! m)))
 
 (define/contract (marionette-disconnect! m)
   (-> marionette? void?)
-  (sync (marionette-send! m "WebDriver:DeleteSession"))
+  (sync (marionette-delete-session! m))
   (transport-disconnect! (marionette-transport m)))
 
 (define/contract (marionette-send! m command [parameters (hasheq)])
@@ -159,6 +159,7 @@
 ;; Supported commands can be found here:
 ;; https://searchfox.org/mozilla-central/source/testing/geckodriver/src/marionette.rs
 (define-marionette-command (WebDriver:Back))
+(define-marionette-command (WebDriver:DeleteSession))
 (define-marionette-command (WebDriver:ElementClear id))
 (define-marionette-command (WebDriver:ElementClick id))
 (define-marionette-command (WebDriver:ElementSendKeys id text))
@@ -181,6 +182,7 @@
 (define-marionette-command (WebDriver:IsElementEnabled id))
 (define-marionette-command (WebDriver:IsElementSelected id))
 (define-marionette-command (WebDriver:Navigate url))
+(define-marionette-command (WebDriver:NewSession [capabilities (hasheq)]))
 (define-marionette-command (WebDriver:Refresh))
 (define-marionette-command (WebDriver:SetTimeouts script pageLoad implicit))
 (define-marionette-command (WebDriver:SetWindowRect width height))
