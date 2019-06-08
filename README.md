@@ -27,7 +27,7 @@ Run this script:
         (page-goto! p "https://racket-lang.org")
         (call-with-page-screenshot! p
           (lambda (data)
-            (define filename (make-temporary-file))
+            (define filename (make-temporary-file "~a.png"))
             (with-output-to-file filename
               #:exists 'truncate/replace
               (lambda _
