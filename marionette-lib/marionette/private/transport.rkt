@@ -51,8 +51,6 @@
                (equal? (hash-ref preamble 'marionetteProtocol #f) 3))
     (raise-user-error 'transport-connect! "the other end doesn't implement the v3 marionette protocol"))
 
-  (file-stream-buffer-mode out 'none)
-
   (set-transport-in! t in)
   (set-transport-out! t out)
   (set-transport-receiver! t (make-receiver t)))
@@ -77,7 +75,8 @@
 
      (write-string (number->string (bytes-length data:str)))
      (write-bytes #":")
-     (write-bytes data:str))))
+     (write-bytes data:str)
+     (flush-output))))
 
 (define prefix-re
   #rx"([1-9][0-9]*):")
