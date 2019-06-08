@@ -26,10 +26,10 @@
 (define/contract (call-with-browser! p
                    #:host [host "127.0.0.1"]
                    #:port [port 28282])
-  (->* ((-> browser? any/c))
+  (->* ((-> browser? any))
        (#:host non-empty-string?
         #:port (integer-in 1 65535))
-       any/c)
+       any)
 
   (define b #f)
   (dynamic-wind
@@ -41,7 +41,7 @@
       (browser-disconnect! b))))
 
 (define/contract (call-with-page! b p)
-  (-> browser? (-> page? any/c) any/c)
+  (-> browser? (-> page? any) any)
   (define page #f)
   (dynamic-wind
     (lambda _

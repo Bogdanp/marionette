@@ -26,7 +26,6 @@
 
 (struct browser (marionette))
 
-
 (define/contract (browser-connect! #:host [host "127.0.0.1"]
                                    #:port [port 2828])
   (->* ()

@@ -25,10 +25,11 @@
 
  element-handle
  element-tag
- element-attribute
- element-property
  element-text
  element-rect
+
+ element-attribute
+ element-property
 
  call-with-element-screenshot!)
 
@@ -127,24 +128,6 @@
     (marionette-get-element-tag-name! (element-marionette e) (element-id e))
     (curryr hash-ref 'value))))
 
-(define/contract (element-attribute e name)
-  (-> element? non-empty-string? (or/c false/c string?))
-  (sync
-   (handle-evt
-    (marionette-get-element-attribute! (element-marionette e) (element-id e) name)
-    (match-lambda
-      [(hash-table ('value 'null)) #f]
-      [(hash-table ('value value)) value]))))
-
-(define/contract (element-property e name)
-  (-> element? non-empty-string? (or/c false/c string?))
-  (sync
-   (handle-evt
-    (marionette-get-element-property! (element-marionette e) (element-id e) name)
-    (match-lambda
-      [(hash-table ('value 'null)) #f]
-      [(hash-table ('value value)) value]))))
-
 (define/contract (element-text e)
   (-> element? string?)
   (sync
@@ -163,6 +146,24 @@
                    ('width w)
                    ('height h))
        (rect x y w h)]))))
+
+(define/contract (element-attribute e name)
+  (-> element? non-empty-string? (or/c false/c string?))
+  (sync
+   (handle-evt
+    (marionette-get-element-attribute! (element-marionette e) (element-id e) name)
+    (match-lambda
+      [(hash-table ('value 'null)) #f]
+      [(hash-table ('value value)) value]))))
+
+(define/contract (element-property e name)
+  (-> element? non-empty-string? (or/c false/c string?))
+  (sync
+   (handle-evt
+    (marionette-get-element-property! (element-marionette e) (element-id e) name)
+    (match-lambda
+      [(hash-table ('value 'null)) #f]
+      [(hash-table ('value value)) value]))))
 
 (define/contract (call-with-element-screenshot! e p)
   (-> element? (-> bytes? any) any)

@@ -170,8 +170,7 @@ SCRIPT
       (for/list ([id (in-list ids)])
         (make-element id (page-marionette p)))))))
 
-(define/contract (call-with-page-screenshot! page p
-                   #:full? [full? #t])
+(define/contract (call-with-page-screenshot! page p #:full? [full? #t])
   (->* (page? (-> bytes? any))
        (#:full? boolean?) any)
   (sync
