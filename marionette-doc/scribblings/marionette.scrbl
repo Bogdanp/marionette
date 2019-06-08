@@ -142,6 +142,16 @@ initiate multiple browser sessions via @racket[call-with-browser!].
   Get or set @racket[p]'s HTML content.
 }
 
+@defproc[(page-wait-for! [p page?]
+                         [selector non-empty-string?]
+                         [#:timeout timeout exact-nonnegative-integer? 30000]
+                         [#:visible? visible? boolean? #t]) (or/c false/c element?)]{
+  Waits for an element matching @racket[selector] to appear on
+  @racket[p] or @racket[timeout] milliseconds to pass.  If
+  @racket[visible?] is @racket[#t], then the element must be visible
+  on the page for it to match.
+}
+
 @deftogether[
   (@defproc[(page-query-selector! [p page?]
                                   [selector non-empty-string?]) (or/c false/c element?)]
