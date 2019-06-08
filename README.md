@@ -30,7 +30,8 @@ Run this script:
             (define filename (make-temporary-file))
             (with-output-to-file filename
               #:exists 'truncate/replace
-              (write-bytes data))
+              (lambda _
+                (write-bytes data)))
 
             (system* (find-executable-path "open") filename)))))))
 ```
