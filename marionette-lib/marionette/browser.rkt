@@ -5,6 +5,7 @@
          racket/list
          racket/match
          racket/string
+         "capabilities.rkt"
          "page.rkt"
          "private/marionette.rkt"
          "timeouts.rkt")
@@ -27,14 +28,16 @@
 (struct browser (marionette))
 
 (define/contract (browser-connect! #:host [host "127.0.0.1"]
-                                   #:port [port 2828])
+                                   #:port [port 2828]
+                                   #:capabilities [capabilities (make-capabilities)])
   (->* ()
        (#:host non-empty-string?
-        #:port (integer-in 1 65535))
+        #:port (integer-in 1 65535)
+        #:capabilities capabilities?)
        browser?)
 
   (define marionette (make-marionette host port))
-  (marionette-connect! marionette)
+  (marionette-connect! marionette (capabilities->jsexpr capabilities))
   (browser marionette))
 
 (define/contract (browser-disconnect! b)

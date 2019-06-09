@@ -48,10 +48,10 @@
   (define dispatcher (make-dispatcher waiters chan))
   (marionette transport dispatcher waiters))
 
-(define/contract (marionette-connect! m)
-  (-> marionette? jsexpr?)
+(define/contract (marionette-connect! m [capabilities (command-param-missing)])
+  (->* (marionette?) (jsexpr?) jsexpr?)
   (transport-connect! (marionette-transport m))
-  (sync (marionette-new-session! m)))
+  (sync (marionette-new-session! m capabilities)))
 
 (define/contract (marionette-disconnect! m)
   (-> marionette? void?)
