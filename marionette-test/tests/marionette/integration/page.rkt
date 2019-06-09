@@ -152,17 +152,44 @@ SCRIPT
              (check-true (string-contains? (page-content p) c))))))))
 
    (test-suite
+    "page-alert-{text,accept!,dismiss!,type!}"
+
+    (call-with-browser!
+      #:capabilities (make-capabilities #:unhandled-prompt-behavior "ignore")
+      (lambda (b)
+        (call-with-page! b
+          (lambda (p)
+            (test-case "cannot retrieve text if there is no current alert"
+              (check-exn
+               exn:fail:marionette?
+               (lambda _
+                 (page-alert-text p))))
+
+            (test-case "can accept alerts"
+              (page-execute! p "confirm('ok?')")
+              (page-alert-accept! p))
+
+            (test-case "can dismiss alerts"
+              (page-execute! p "confirm('ok?')")
+              (page-alert-accept! p))
+
+            (test-case "can retrieve text from alerts"
+              (page-execute! p "alert('hello!')")
+              (check-equal? (page-alert-text p) "hello!")
+              (page-alert-dismiss! p)))))))
+
+   (test-suite
     "call-with-page-screenshot!"
 
     (test-case "can screenshot an entire page"
       (call-with-browser!
         (lambda (b)
           (call-with-page! b
-           (lambda (p)
-             (page-goto! p "https://example.com")
-             (call-with-page-screenshot! p
-               (lambda (data)
-                 (check-not-false data)))))))))))
+            (lambda (p)
+              (page-goto! p "https://example.com")
+              (call-with-page-screenshot! p
+                (lambda (data)
+                  (check-not-false data)))))))))))
 
 (module+ test
   (run-integration-tests page-tests))

@@ -171,6 +171,18 @@ initiate multiple browser sessions via @racket[call-with-browser!].
   match the given selector.
 }
 
+@deftogether[
+  (@defproc[(page-alert-text [p page?]) string?]
+   @defproc[(page-alert-accept! [p page?]) void?]
+   @defproc[(page-alert-dismiss! [p page?]) void?]
+   @defproc[(page-alert-type! [p page?]
+                              [text string?]) void?])]{
+  Interact with the current prompt on @racket[p].  By default, all
+  prompts are automatically dismissed, so you won't have anything to
+  interact with.  To change this, specify a different unhandled prompt
+  behavior in your @racket[capabilities?].
+}
+
 @defproc[(call-with-page-screenshot! [page page?]
                                      [proc (-> bytes? any)]
                                      [#:full? full? boolean? #t]) any]{

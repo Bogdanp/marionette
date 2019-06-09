@@ -52,7 +52,6 @@ browser.
 
 ## Todos
 
-* [ ] Alerts
 * [ ] Cookies
 * [ ] Frames
 

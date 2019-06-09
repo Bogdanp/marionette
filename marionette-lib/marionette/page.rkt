@@ -41,6 +41,11 @@
  page-content
  set-page-content!
 
+ page-alert-text
+ page-alert-accept!
+ page-alert-dismiss!
+ page-alert-type!
+
  call-with-page-screenshot!)
 
 (struct exn:fail:marionette:page exn:fail:marionette ())
@@ -276,6 +281,25 @@ SCRIPT
     (lambda (ids)
       (for/list ([id (in-list ids)])
         (make-element id (page-marionette p)))))))
+
+(define/contract (page-alert-text p)
+  (-> page? string?)
+  (sync
+   (handle-evt
+    (marionette-get-alert-text! (page-marionette p))
+    (curryr hash-ref 'value))))
+
+(define/contract (page-alert-accept! p)
+  (-> page? void?)
+  (void (sync (marionette-accept-alert! (page-marionette p)))))
+
+(define/contract (page-alert-dismiss! p)
+  (-> page? void?)
+  (void (sync (marionette-dismiss-alert! (page-marionette p)))))
+
+(define/contract (page-alert-type! p text)
+  (-> page? string? void?)
+  (void (sync (marionette-send-alert-text! (page-marionette p) text))))
 
 (define/contract (call-with-page-screenshot! page p #:full? [full? #t])
   (->* (page? (-> bytes? any))
