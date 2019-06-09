@@ -130,6 +130,12 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 }
 
 @deftogether[
+  (@defproc[(page-interactive? [p page?]) boolean?]
+   @defproc[(page-loaded? [p page?]) boolean?])]{
+  Ascertain the current "ready state" of @racket[p].
+}
+
+@deftogether[
   (@defproc[(page-title [p page?]) string?]
    @defproc[(page-url [p page?]) url?])]{
   Accessors for @racket[p]'s title and url, respectively.

@@ -6,7 +6,6 @@
          json
          racket/async-channel
          racket/contract
-         racket/function
          racket/list
          racket/match
          racket/string

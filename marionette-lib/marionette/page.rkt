@@ -35,6 +35,7 @@
 
  page-interactive?
  page-loaded?
+
  page-title
  page-url
  page-content
