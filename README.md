@@ -40,7 +40,6 @@ Run this script:
 
 * [ ] ~~Alerts~~
 * [ ] Cookies
-* [ ] Downloads
 * [ ] Frames
 
 ## Notes
