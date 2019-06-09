@@ -4,6 +4,13 @@
 ;; from a web page, though jsPDF still needs to be further improved
 ;; before this is viable.
 
+;; You could potentially use html2pdf instead, which works better, but
+;; that creates an image of the element-to-be-rendered and inserts
+;; that into the PDF.
+
+;; Also, this approach fails if a Content-Security Policy is present
+;; on a page that blocks the cdns used.
+
 (require net/base64
          marionette)
 
