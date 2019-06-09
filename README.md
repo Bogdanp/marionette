@@ -36,6 +36,20 @@ Run this script:
             (system* (find-executable-path "open") filename)))))))
 ```
 
+## Tips
+
+To run a headless, marionette-enabled Firefox while you've got another
+instance of the browser open, add the `-no-remote` flag:
+
+    $ /path/to/firefox -no-remote -headless -marionette -safe-mode
+
+It's advisable that you use a separate profile as well:
+
+    $ /path/to/firefox -P marionette -no-remote -headless -marionette -safe-mode
+
+You can create new profiles by visiting `about:profiles` in the
+browser.
+
 ## Todos
 
 * [ ] ~~Alerts~~
