@@ -29,8 +29,8 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 
 @defproc[(call-with-browser! [p (-> browser? any)]
                              [#:host host non-empty-string? "127.0.0.1"]
-                             [#:port port (integer-in 1 65535) 2828])
-                             any]{
+                             [#:port port (integer-in 1 65535) 2828]
+                             [#:capabilities capabilities capabilities? (make-capabilities)]) any]{
   Calls @racket[p] after initiating a new browser session and
   disconnects after @racket[p] finishes executing.
 }
@@ -50,8 +50,8 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 }
 
 @defproc[(browser-connect! [#:host host non-empty-string? "127.0.0.1"]
-                           [#:port port (integer-in 1 65535) 2828])
-                           browser?]{
+                           [#:port port (integer-in 1 65535) 2828]
+                           [#:capabilities capabilities capabilities? (make-capabilities)]) browser?]{
   Connects to the marionette server at @racket[host] and @racket[port]
   and returns a @racket[browser?] session.
 }
@@ -78,6 +78,10 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 
 @defproc[(make-browser-page! [b browser?]) page?]{
   Open a new page in @racket[b] and return it.
+}
+
+@defproc[(browser-capabilities [b browser?]) capabilities?]{
+  Retrieve the @racket[capabilities?] for @racket[b].
 }
 
 @defproc[(browser-pages [b browser?]) (listof page?)]{
@@ -241,6 +245,30 @@ initiate multiple browser sessions via @racket[call-with-browser!].
                                         [p (-> bytes? any)]) any]{
   Take a screenshot of @racket[e] and call @racket[proc] with the
   resulting @racket[bytes?].
+}
+
+
+@subsection[#:tag "reference/capabilities"]{Capabilities}
+@defmodule[marionette/capabilities]
+
+@defstruct[capabilities ([timeouts timeouts?]
+                         [page-load-strategy (or/c "none" "eager" "normal")]
+                         [unhandled-prompt-behavior (or/c "dismiss" "dismiss and notify"
+                                                          "accept" "accept and notify"
+                                                          "ignore")]
+                         [accept-insecure-certs? boolean?])]{
+
+  This struct is used to represent a session's capabilities.  Think of
+  these as settings/behaviors that you can tweak when you create a new
+  session via @racket[browser-connect!].
+}
+
+@defproc[(make-capabilities [#:timeouts timeouts timeouts? (make-timeouts)]
+                            [#:page-load-strategy page-load-strategy page-load-strategy/c "normal"]
+                            [#:unhandled-prompt-behavior unhandled-prompt-behavior unhandled-prompt-behavior/c "dismiss and notify"]
+                            [#:accept-insecure-certs? accept-insecure-certs? boolean? #f]) capabilities?]{
+
+  A convenience constructor for @racket[capabilities].
 }
 
 
