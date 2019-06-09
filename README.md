@@ -52,23 +52,8 @@ browser.
 
 ## Todos
 
-* [ ] ~~Alerts~~
+* [ ] Alerts
 * [ ] Cookies
 * [ ] Frames
-
-## Notes
-
-### Alerts
-
-The commands for alerts are all there, but there doesn't appear to be
-a way to set a global alert handler so all alerts are immediately
-dismissed.
-
-Reading the Web Driver protocol section on [prompts], it's not clear
-to me how prompt handlers are supposed to be set and the marionette
-server doesn't appear to expose a way to do it either.
-
-[prompts]: https://w3c.github.io/webdriver/#dfn-user-prompt-handler
-
 
 [Marionette Protocol]: https://firefox-source-docs.mozilla.org/testing/marionette/marionette/Protocol.html
