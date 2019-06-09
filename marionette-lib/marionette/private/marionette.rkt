@@ -9,6 +9,8 @@
          racket/list
          racket/match
          racket/string
+         "../capabilities.rkt"
+         "../timeouts.rkt"
          "transport.rkt"
          "util.rkt"
          "waiters.rkt")
@@ -48,10 +50,14 @@
   (define dispatcher (make-dispatcher waiters chan))
   (marionette transport dispatcher waiters))
 
-(define/contract (marionette-connect! m [capabilities (command-param-missing)])
-  (->* (marionette?) (jsexpr?) jsexpr?)
+(define/contract (marionette-connect! m c)
+  (-> marionette? capabilities? jsexpr?)
   (transport-connect! (marionette-transport m))
-  (sync (marionette-new-session! m capabilities)))
+  (sync (marionette-new-session! m
+                                 (timeouts->jsexpr (capabilities-timeouts c))
+                                 (capabilities-page-load-strategy c)
+                                 (capabilities-unhandled-prompt-behavior c)
+                                 (capabilities-accept-insecure-certs? c))))
 
 (define/contract (marionette-disconnect! m)
   (-> marionette? void?)
@@ -205,7 +211,7 @@
 (define-marionette-command (WebDriver:MaximizeWindow))
 (define-marionette-command (WebDriver:MinimizeWindow))
 (define-marionette-command (WebDriver:Navigate url))
-(define-marionette-command (WebDriver:NewSession [capabilities (hasheq)]))
+(define-marionette-command (WebDriver:NewSession [timeouts] [pageLoadStrategy] [unhandledPromptBehavior] [acceptInsecureCerts]))
 (define-marionette-command (WebDriver:PerformActions actions))
 (define-marionette-command (WebDriver:Refresh))
 (define-marionette-command (WebDriver:ReleaseActions))

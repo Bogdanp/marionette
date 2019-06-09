@@ -5,9 +5,14 @@
          "timeouts.rkt")
 
 (provide
+ (contract-out
+  [struct capabilities ([timeouts timeouts?]
+                        [page-load-strategy page-load-strategy/c]
+                        [unhandled-prompt-behavior unhandled-prompt-behavior/c]
+                        [accept-insecure-certs? boolean?])])
+
  make-capabilities
- capabilities?
- capabilities->jsexpr)
+ jsexpr->capabilities)
 
 (define page-load-strategy/c
   (or/c "none" "eager" "normal"))
@@ -41,11 +46,12 @@
                 unhandled-prompt-behavior
                 accept-insecure-certs?))
 
-(define/contract (capabilities->jsexpr c)
-  (-> capabilities? jsexpr?)
-  (hasheq 'timeouts (hasheq 'script (timeouts-script (capabilities-timeouts c))
-                            'pageLoad (timeouts-page-load (capabilities-timeouts c))
-                            'implicit (timeouts-implicit (capabilities-timeouts c)))
-          'pageLoadStrategy (capabilities-page-load-strategy c)
-          'unhandledPromptBehavior (capabilities-unhandled-prompt-behavior c)
-          'acceptInsecureCerts (capabilities-accept-insecure-certs? c)))
+(define/contract (jsexpr->capabilities data)
+  (-> jsexpr? capabilities?)
+  (define timeouts-data (hash-ref data 'timeouts))
+  (make-capabilities #:timeouts (make-timeouts #:script (hash-ref timeouts-data 'script)
+                                               #:page-load (hash-ref timeouts-data 'pageLoad)
+                                               #:implicit (hash-ref timeouts-data 'implicit))
+                     #:page-load-strategy (hash-ref data 'pageLoadStrategy)
+                     #:unhandled-prompt-behavior (hash-ref data 'unhandledPromptBehavior)
+                     #:accept-insecure-certs? (hash-ref data 'acceptInsecureCerts)))

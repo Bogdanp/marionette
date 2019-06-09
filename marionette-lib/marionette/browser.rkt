@@ -22,6 +22,7 @@
  set-browser-viewport-size!
 
  make-browser-page!
+ browser-capabilities
  browser-pages
  browser-focus!)
 
@@ -37,7 +38,7 @@
        browser?)
 
   (define marionette (make-marionette host port))
-  (marionette-connect! marionette (capabilities->jsexpr capabilities))
+  (marionette-connect! marionette capabilities)
   (browser marionette))
 
 (define/contract (browser-disconnect! b)
@@ -99,6 +100,15 @@
   (define p (last (browser-pages b)))
   (begin0 p
     (browser-focus! b p)))
+
+(define/contract (browser-capabilities b)
+  (-> browser? capabilities?)
+  (sync
+   (handle-evt
+    (marionette-get-capabilities! (browser-marionette b))
+    (match-lambda
+      [(hash-table ('capabilities caps))
+       (jsexpr->capabilities caps)]))))
 
 (define/contract (browser-pages b)
   (-> browser? (listof page?))

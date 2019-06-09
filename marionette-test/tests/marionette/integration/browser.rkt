@@ -61,12 +61,23 @@
            (check-eq? h 1080))))))
 
    (test-suite
+    "browser-capabilities"
+
+    (test-case "can set and get capabilities"
+      (define caps (make-capabilities #:page-load-strategy "none"
+                                      #:unhandled-prompt-behavior "ignore"))
+      (call-with-browser!
+        #:capabilities caps
+        (lambda (b)
+          (check-equal? (browser-capabilities b) caps)))))
+
+   (test-suite
     "browser-pages"
 
     (test-case "can list existing pages"
       (call-with-browser!
-       (lambda (b)
-         (check-true (> (length (browser-pages b)) 0))))))
+        (lambda (b)
+          (check-true (> (length (browser-pages b)) 0))))))
 
    (test-suite
     "make-browser-page!"

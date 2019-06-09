@@ -1,14 +1,16 @@
 #lang racket/base
 
-(require racket/contract)
+(require json
+         racket/contract)
 
 (provide
- make-timeouts
-
  (contract-out
   [struct timeouts ([script exact-nonnegative-integer?]
                     [page-load exact-nonnegative-integer?]
-                    [implicit exact-nonnegative-integer?])]))
+                    [implicit exact-nonnegative-integer?])])
+
+ make-timeouts
+ timeouts->jsexpr)
 
 (struct timeouts (script page-load implicit)
   #:transparent)
@@ -22,3 +24,9 @@
         #:implicit exact-nonnegative-integer?)
        timeouts?)
   (timeouts script page-load implicit))
+
+(define/contract (timeouts->jsexpr t)
+  (-> timeouts? jsexpr?)
+  (hasheq 'script (timeouts-script t)
+          'pageLoad (timeouts-page-load t)
+          'implicit (timeouts-implicit t)))
