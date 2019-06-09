@@ -212,7 +212,8 @@ SCRIPT
                                  #:timeout [timeout 30000]
                                  #:visible? [visible? #t])
   (->* (page? non-empty-string?)
-       (#:timeout exact-nonnegative-integer?)
+       (#:timeout exact-nonnegative-integer?
+        #:visible? boolean?)
        (or/c false/c element?))
 
   (define chan (make-channel))
