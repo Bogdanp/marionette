@@ -8,7 +8,8 @@
          racket/match
          racket/string
          "element.rkt"
-         "private/marionette.rkt")
+         "private/marionette.rkt"
+         "private/util.rkt")
 
 (provide
  exn:fail:marionette:page?
@@ -114,8 +115,8 @@ SCRIPT
     (marionette-execute-async-script! (page-marionette p) (wrap-async-script s) args)
     (lambda (res)
       (match (hash-ref res 'value)
-        [(hash-table ('error 'null)
-                     ('value value)) value]
+        [(hash-table ('error (js-null))
+                     ('value value   )) value]
 
         [(hash-table ('error err))
          (raise (exn:fail:marionette:page:script "async script execution failed"
@@ -241,7 +242,7 @@ SCRIPT
                                 [(or (string-contains? (exn-message e) "unloaded")
                                      (string-contains? (exn-message e) "async script execution failed")
                                      (string-contains? (exn-message e) "async script execution aborted")
-                                     (string-contains? (exn-message e) "context has been discared"))
+                                     (string-contains? (exn-message e) "context has been discarded"))
                                  (loop)]
 
                                 [else (raise e)]))])

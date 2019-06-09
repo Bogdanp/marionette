@@ -92,7 +92,7 @@
                         (lambda (e)
                           (log-marionette-warning (format "encountered unhandled exception: ~a" (exn-message e))))])
          (match (sync ->chan)
-           [(list 1 command-id error-data 'null)
+           [(list 1 command-id error-data (js-null))
             (cond
               [(waiter-set-ref (unbox waiters) command-id)
                => (lambda (command-chan)
@@ -102,7 +102,7 @@
               [else
                (log-marionette-warning (format "received error for unknown command ~v: ~a" command-id error-data))])]
 
-           [(list 1 command-id 'null data)
+           [(list 1 command-id (js-null) data)
             (cond
               [(waiter-set-ref (unbox waiters) command-id)
                => (lambda (command-chan)

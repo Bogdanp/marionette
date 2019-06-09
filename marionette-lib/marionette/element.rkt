@@ -6,6 +6,7 @@
          racket/match
          racket/string
          "private/marionette.rkt"
+         "private/util.rkt"
          "rect.rkt")
 
 (provide
@@ -153,8 +154,8 @@
    (handle-evt
     (marionette-get-element-attribute! (element-marionette e) (element-id e) name)
     (match-lambda
-      [(hash-table ('value 'null)) #f]
-      [(hash-table ('value value)) value]))))
+      [(hash-table ('value (js-null))) #f   ]
+      [(hash-table ('value value    )) value]))))
 
 (define/contract (element-property e name)
   (-> element? non-empty-string? (or/c false/c string?))
@@ -162,8 +163,8 @@
    (handle-evt
     (marionette-get-element-property! (element-marionette e) (element-id e) name)
     (match-lambda
-      [(hash-table ('value 'null)) #f]
-      [(hash-table ('value value)) value]))))
+      [(hash-table ('value (js-null))) #f]
+      [(hash-table ('value value    )) value]))))
 
 (define/contract (call-with-element-screenshot! e p)
   (-> element? (-> bytes? any) any)
