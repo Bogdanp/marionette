@@ -144,7 +144,7 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 
 @defproc[(page-wait-for! [p page?]
                          [selector non-empty-string?]
-                         [#:timeout timeout exact-nonnegative-integer? 30000]
+                         [#:timeout timeout (and/c real? (not/c negative?)) 30]
                          [#:visible? visible? boolean? #t]) (or/c false/c element?)]{
   Waits for an element matching @racket[selector] to appear on
   @racket[p] or @racket[timeout] milliseconds to pass.  If

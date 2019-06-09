@@ -80,14 +80,34 @@ SCRIPT
                                      )))))))))
 
    (test-suite
+    "page-wait-for!"
+
+    (test-case "returns #f if the element never exists"
+      (call-with-browser!
+        (lambda (b)
+          (call-with-page! b
+            (lambda (p)
+              (set-page-content! p "<h1>Hello")
+              (check-false (page-wait-for! p ".idontexist"
+                                           #:timeout 0.1)))))))
+
+    (test-case "returns the element as soon as it is available"
+      (call-with-browser!
+        (lambda (b)
+          (call-with-page! b
+            (lambda (p)
+              (set-page-content! p "<h1>Hello")
+              (check-not-false (page-wait-for! p "h1" #:timeout 0.1))))))))
+
+   (test-suite
     "page-query-selector!"
 
     (test-case "can fail to retrieve nonexistent elements"
       (call-with-browser!
-       (lambda (b)
-         (call-with-page! b
-           (lambda (p)
-             (check-false (page-query-selector! p ".idontexist")))))))
+        (lambda (b)
+          (call-with-page! b
+            (lambda (p)
+              (check-false (page-query-selector! p ".idontexist")))))))
 
     (test-case "can retrieve elements"
       (call-with-browser!

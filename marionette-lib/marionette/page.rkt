@@ -120,7 +120,12 @@ SCRIPT
         [(hash-table ('error err))
          (raise (exn:fail:marionette:page:script "async script execution failed"
                                                  (current-continuation-marks)
-                                                 err))])))))
+                                                 err))]
+
+        [(? (curry eq? (json-null)))
+         (raise (exn:fail:marionette:page:script "async script execution aborted"
+                                                 (current-continuation-marks)
+                                                 #f))])))))
 
 (define/contract (page-title p)
   (-> page? string?)
@@ -149,16 +154,20 @@ SCRIPT
   (void
    (page-execute! p "document.documentElement.innerHTML = arguments[0]" c)))
 
+(define/contract (page-readystate p)
+  (-> page? jsexpr?)
+  (page-execute! p "return document.readyState"))
+
 (define/contract (page-interactive? p)
   (-> page? boolean?)
-  (page-execute! p "return [\"interactive\", \"complete\"].indexOf(document.readyState) !== -1"))
+  (member (page-readystate p) '("interactive" "complete")))
 
 (define/contract (page-loaded? p)
   (-> page? boolean?)
-  (page-execute! p "return document.readyState === \"complete\""))
+  (member (page-readystate p) '("complete")))
 
 (define wait-for-element-script #<<SCRIPT
-const [selector, mustBeVisible] = arguments;
+const [selector, timeout, mustBeVisible] = arguments;
 
 let node;
 let resolve;
@@ -167,6 +176,10 @@ const res = new Promise(r => resolve = function(res) {
   observer && observer.disconnect();
   return r(res);
 });
+
+window.setTimeout(function() {
+  return resolve(false);
+}, timeout);
 
 bootstrap();
 return res;
@@ -192,9 +205,9 @@ function bootstrap() {
 }
 
 function isVisible(node) {
-    const { visibility } = window.getComputedStyle(node) || {};
-    const { top, bottom, width, height } = node.getBoundingClientRect();
-    return visibility !== "hidden" && top && bottom && width && height;
+  const { visibility } = window.getComputedStyle(node) || {};
+  const { top, bottom, width, height } = node.getBoundingClientRect();
+  return visibility !== "hidden" && top && bottom && width && height;
 }
 
 function findNode() {
@@ -209,10 +222,10 @@ SCRIPT
   )
 
 (define/contract (page-wait-for! p selector
-                                 #:timeout [timeout 30000]
+                                 #:timeout [timeout 30]
                                  #:visible? [visible? #t])
   (->* (page? non-empty-string?)
-       (#:timeout exact-nonnegative-integer?
+       (#:timeout (and/c real? (not/c negative?))
         #:visible? boolean?)
        (or/c false/c element?))
 
@@ -220,32 +233,23 @@ SCRIPT
   (define waiter
     (thread
      (lambda _
-       (let outer-loop ()
-         (let inner-loop ()
-           (unless (page-loaded? p)
-             (sync (system-idle-evt))
-             (inner-loop)))
-
+       (let loop ()
          (define handle
-           (with-handlers ([exn:fail?
+           (with-handlers ([exn:fail:marionette?
                             (lambda (e)
                               (cond
-                                [(string-contains? (exn-message e) "unloaded")
-                                 (outer-loop)]
+                                [(or (string-contains? (exn-message e) "unloaded")
+                                     (string-contains? (exn-message e) "async script execution failed")
+                                     (string-contains? (exn-message e) "async script execution aborted")
+                                     (string-contains? (exn-message e) "context has been discared"))
+                                 (loop)]
 
-                                [else
-                                 (raise e)]))])
-             (page-execute-async! p wait-for-element-script selector visible?)))
+                                [else (raise e)]))])
+             (page-execute-async! p wait-for-element-script selector (* timeout 1000) visible?)))
 
          (channel-put chan (and handle (page-query-selector! p selector)))))))
 
-  (sync
-   chan
-   (handle-evt
-    (alarm-evt (+ (current-inexact-milliseconds) timeout))
-    (lambda _
-      (begin0 #f
-        (kill-thread waiter))))))
+  (sync/timeout timeout chan))
 
 (define/contract (page-query-selector! p selector)
   (-> page? non-empty-string? (or/c false/c element?))
