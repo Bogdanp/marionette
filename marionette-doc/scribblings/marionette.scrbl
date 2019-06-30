@@ -27,6 +27,25 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 @section[#:tag "reference"]{Reference}
 @defmodule[marionette]
 
+@deftogether[
+  (@defproc[(start-marionette! [#:command command absolute-path? "/usr/local/bin/firefox"]
+                               [#:safe-mode? safe-mode? boolean? #t]
+                               [#:headless? headless? boolean? #t]
+                               [#:timeout timeout exact-nonnegative-integer? 5]) (-> void?)]
+   @defproc[(call-with-marionette! [p (-> any)]) any])]{
+  Start a marionette-enabled instance of the Firefox browser using a
+  pristine profile.  The return value is a procedure that can be used
+  to stop the browser.
+
+  The @racket[command] argument controls the path to the firefox
+  binary.  If not provided, the system @literal{PATH} is searched
+  along with the @literal{/Applications} folder on macOS.
+
+  @racket[call-with-marionette!] accepts the same keyword arguments
+  that @racket[start-marionette!] does.  It starts the browser,
+  applies its @racket[p] argument then immediately stops the browser.
+}
+
 @defproc[(call-with-browser! [p (-> browser? any)]
                              [#:host host non-empty-string? "127.0.0.1"]
                              [#:port port (integer-in 1 65535) 2828]

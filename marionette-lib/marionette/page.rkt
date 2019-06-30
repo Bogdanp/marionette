@@ -125,7 +125,7 @@ SCRIPT
                      ('value value   )) value]
 
         [(hash-table ('error err))
-         (raise (exn:fail:marionette:page:script "async script execution failed"
+         (raise (exn:fail:marionette:page:script (format "async script execution failed: ~a" err)
                                                  (current-continuation-marks)
                                                  err))]
 
