@@ -92,7 +92,7 @@
     (control 'wait)
 
     (when delete-profile?
-      (delete-directory/files profile))))
+      (delete-directory/files profile-path))))
 
 (define call-with-marionette!
   (make-keyword-procedure
