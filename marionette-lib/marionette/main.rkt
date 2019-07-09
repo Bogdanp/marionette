@@ -40,11 +40,13 @@
         path)))
 
 (define/contract (start-marionette! #:command [command FIREFOX-BIN-PATH]
+                                    #:profile [profile (make-temporary-file "marionette~a" 'directory)]
                                     #:safe-mode? [safe-mode? #t]
                                     #:headless? [headless? #t]
                                     #:timeout [timeout 5])
   (->* ()
        (#:command absolute-path?
+        #:profile absolute-path?
         #:safe-mode? boolean?
         #:headless? boolean?
         #:timeout exact-nonnegative-integer?)
@@ -52,9 +54,6 @@
 
   (define deadline
     (+ (current-seconds) timeout))
-
-  (define profile
-    (make-temporary-file "marionette~a" 'directory))
 
   (define command-args
     (for/list ([arg      (list "-safe-mode" "-headless")]
