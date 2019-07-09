@@ -40,13 +40,13 @@
         path)))
 
 (define/contract (start-marionette! #:command [command FIREFOX-BIN-PATH]
-                                    #:profile [profile (make-temporary-file "marionette~a" 'directory)]
+                                    #:profile [profile #f]
                                     #:safe-mode? [safe-mode? #t]
                                     #:headless? [headless? #t]
                                     #:timeout [timeout 5])
   (->* ()
        (#:command absolute-path?
-        #:profile absolute-path?
+        #:profile (or/c false/c absolute-path?)
         #:safe-mode? boolean?
         #:headless? boolean?
         #:timeout exact-nonnegative-integer?)
@@ -55,18 +55,24 @@
   (define deadline
     (+ (current-seconds) timeout))
 
+  (define delete-profile?
+    (not profile))
+
+  (define profile-path
+    (or profile (make-temporary-file "marionette~a" 'directory)))
+
   (define command-args
-    (for/list ([arg      (list "-safe-mode" "-headless")]
-               [enabled? (list safe-mode?   headless?)]
+    (for/list ([arg      (list "--safe-mode" "--headless")]
+               [enabled? (list    safe-mode?    headless?)]
                #:when enabled?)
       arg))
 
   (match-define (list stdout stdin pid stderr control)
     (apply process*
            command
-           "-profile" profile
-           "-no-remote"
-           "-marionette"
+           "--profile" profile-path
+           "--no-remote"
+           "--marionette"
            command-args))
 
   (let loop ()
@@ -84,7 +90,9 @@
   (lambda _
     (control 'interrupt)
     (control 'wait)
-    (delete-directory/files profile)))
+
+    (when delete-profile?
+      (delete-directory/files profile))))
 
 (define call-with-marionette!
   (make-keyword-procedure

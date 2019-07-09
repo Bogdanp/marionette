@@ -29,7 +29,7 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 
 @deftogether[
   (@defproc[(start-marionette! [#:command command absolute-path? "/usr/local/bin/firefox"]
-                               [#:profile profile absolute-path? (make-temporary-file "marionette~a" 'directory)]
+                               [#:profile profile (or/c false/c absolute-path?) #f]
                                [#:safe-mode? safe-mode? boolean? #t]
                                [#:headless? headless? boolean? #t]
                                [#:timeout timeout exact-nonnegative-integer? 5]) (-> void?)]
@@ -41,6 +41,10 @@ initiate multiple browser sessions via @racket[call-with-browser!].
   The @racket[command] argument controls the path to the firefox
   binary.  If not provided, the system @literal{PATH} is searched
   along with the @literal{/Applications} folder on macOS.
+
+  If @racket[profile] is @racket[#f], then a temporary path si created
+  for the profile and it it subsequently removed when the browser is
+  stopped.
 
   @racket[call-with-marionette!] accepts the same keyword arguments
   that @racket[start-marionette!] does.  It starts the browser,
