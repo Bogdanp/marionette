@@ -5,6 +5,9 @@
          "timeouts.rkt")
 
 (provide
+ page-load-strategy/c
+ unhandled-prompt-behavior/c
+
  (contract-out
   [struct capabilities ([timeouts timeouts?]
                         [page-load-strategy page-load-strategy/c]

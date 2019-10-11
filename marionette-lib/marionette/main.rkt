@@ -29,7 +29,10 @@
  call-with-marionette!
 
  call-with-browser!
- call-with-page!)
+ call-with-page!
+
+ call-with-marionette/browser!
+ call-with-marionette/browser/page!)
 
 (define FIREFOX-BIN-PATH
   (or (find-executable-path "firefox")
@@ -138,3 +141,26 @@
       (p page))
     (lambda _
       (page-close! page))))
+
+
+;; shortcuts ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define call-with-marionette/browser!
+  (make-keyword-procedure
+   (lambda (kws kw-args p)
+     (define p*
+       (lambda _
+         (call-with-browser! p)))
+
+     (keyword-apply call-with-marionette! kws kw-args (list p*)))))
+
+(define call-with-marionette/browser/page!
+  (make-keyword-procedure
+   (lambda (kws kw-args p)
+     (define p*
+       (lambda _
+         (call-with-browser!
+           (lambda (b)
+             (call-with-page! b p)))))
+
+     (keyword-apply call-with-marionette! kws kw-args (list p*)))))

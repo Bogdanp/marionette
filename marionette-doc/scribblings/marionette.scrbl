@@ -2,6 +2,9 @@
 
 @(require (for-label net/url
                      racket/base
+                     racket/contract
+                     racket/math
+                     racket/string
                      marionette))
 
 @title{Marionette}
@@ -33,14 +36,17 @@ initiate multiple browser sessions via @racket[call-with-browser!].
                                [#:safe-mode? safe-mode? boolean? #t]
                                [#:headless? headless? boolean? #t]
                                [#:timeout timeout exact-nonnegative-integer? 5]) (-> void?)]
-   @defproc[(call-with-marionette! [p (-> any)]) any])]{
+   @defproc[(call-with-marionette! [p (-> any)]) any]
+   @defproc[(call-with-marionette/browser! [p (-> browser? any)]) any]
+   @defproc[(call-with-marionette/browser/page! [p (-> page? any)]) any])]{
+
   Start a marionette-enabled instance of the Firefox browser using
   @racket[profile].  The return value is a procedure that can be used
   to stop the browser.
 
   The @racket[command] argument controls the path to the firefox
-  binary.  If not provided, the system @literal{PATH} is searched
-  along with the @literal{/Applications} folder on macOS.
+  binary.  If not provided, the system @exec{PATH} is searched along
+  with the @exec{/Applications} folder on macOS.
 
   If @racket[profile] is @racket[#f], then a temporary path si created
   for the profile and it it subsequently removed when the browser is
@@ -49,6 +55,16 @@ initiate multiple browser sessions via @racket[call-with-browser!].
   @racket[call-with-marionette!] accepts the same keyword arguments
   that @racket[start-marionette!] does.  It starts the browser,
   applies its @racket[p] argument then immediately stops the browser.
+
+  @racket[call-with-marionette/browser!] composes
+  @racket[call-with-marionette!] and @racket[call-with-browser!]
+  together.  Keyword arguments are passed through to
+  @racket[start-marionette!].
+
+  @racket[call-with-marionette/browser/page!] composes
+  @racket[call-with-marionette/browser!] and @racket[call-with-page!]
+  together.  Keyword arguments are passed through to
+  @racket[start-marionette!].
 }
 
 @defproc[(call-with-browser! [p (-> browser? any)]
@@ -271,7 +287,7 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 @deftogether[
   (@defproc[(element-attribute [e element?]
                                [name string?]) (or/c false/c string?)]
-   @defproc[(element-property [e element]
+   @defproc[(element-property [e element?]
                               [name string?]) (or/c false/c string?)])]{
   Retrieve @racket[e]'s attribute named @racket[name] statically and
   dynamically, respectively.
@@ -287,11 +303,20 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 @subsection[#:tag "reference/capabilities"]{Capabilities}
 @defmodule[marionette/capabilities]
 
+@deftogether[
+  (@defthing[page-load-strategy/c (or/c "none" "eager" "normal")]
+   @defthing[unhandled-prompt-behavior/c (or/c "dismiss"
+                                               "dismiss and notify"
+                                               "accept"
+                                               "accept and notify"
+                                               "ignore")])]{
+
+  Contracts used by the functions in this module.
+}
+
 @defstruct[capabilities ([timeouts timeouts?]
-                         [page-load-strategy (or/c "none" "eager" "normal")]
-                         [unhandled-prompt-behavior (or/c "dismiss" "dismiss and notify"
-                                                          "accept" "accept and notify"
-                                                          "ignore")]
+                         [page-load-strategy page-load-strategy/c]
+                         [unhandled-prompt-behavior unhandled-prompt-behavior/c]
                          [accept-insecure-certs? boolean?])]{
 
   This struct is used to represent a session's capabilities.  Think of

@@ -44,7 +44,7 @@ SCRIPT
   (p (base64-decode (string->bytes/utf-8
                      (cadr (string-split data-url "," #:repeat? #f))))))
 
-(call-with-browser!
+(call-with-marionette/browser!
   (lambda (b)
     (set-browser-viewport-size! b 1920 1080)
     (call-with-page! b
