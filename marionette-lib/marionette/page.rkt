@@ -167,11 +167,15 @@ SCRIPT
 
 (define/contract (page-interactive? p)
   (-> page? boolean?)
-  (member (page-readystate p) '("interactive" "complete")))
+  (if (member (page-readystate p) '("interactive" "complete"))
+      #t
+      #f))
 
 (define/contract (page-loaded? p)
   (-> page? boolean?)
-  (member (page-readystate p) '("complete")))
+  (if (member (page-readystate p) '("complete"))
+      #t
+      #f))
 
 (define wait-for-element-script #<<SCRIPT
 const [selector, timeout, mustBeVisible] = arguments;
