@@ -96,7 +96,7 @@
   (-> element? non-empty-string? (listof element?))
   (sync
    (handle-evt
-    (marionette-find-elements! (element-marionette e) selector)
+    (marionette-find-elements! (element-marionette e) selector (element-id e))
     (lambda (ids)
       (for/list ([id (in-list ids)])
         (make-element id (element-marionette e)))))))
