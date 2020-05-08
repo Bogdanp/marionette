@@ -4,5 +4,6 @@
 (define collection 'multi)
 
 (define deps '("base"))
-(define build-deps '("marionette-lib"
+(define build-deps '("at-exp-lib"
+                     "marionette-lib"
                      "rackunit-lib"))

@@ -33,6 +33,7 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 @deftogether[
   (@defproc[(start-marionette! [#:command command absolute-path? "/usr/local/bin/firefox"]
                                [#:profile profile (or/c false/c absolute-path?) #f]
+                               [#:port port (or/c false/c (integer-in 0 65535)) #f]
                                [#:safe-mode? safe-mode? boolean? #t]
                                [#:headless? headless? boolean? #t]
                                [#:timeout timeout exact-nonnegative-integer? 5]) (-> void?)]
@@ -51,6 +52,9 @@ initiate multiple browser sessions via @racket[call-with-browser!].
   If @racket[profile] is @racket[#f], then a temporary path si created
   for the profile and it it subsequently removed when the browser is
   stopped.
+
+  If @racket[port] is provided, then the @racket[profile] will be
+  modified to instruct the marionette server to listen on that port.
 
   @racket[call-with-marionette!] accepts the same keyword arguments
   that @racket[start-marionette!] does.  It starts the browser,

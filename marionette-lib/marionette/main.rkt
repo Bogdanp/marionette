@@ -1,7 +1,8 @@
-#lang racket/base
+#lang at-exp racket/base
 
 (require racket/contract
          racket/file
+         racket/format
          racket/match
          racket/string
          racket/system
@@ -44,12 +45,14 @@
 
 (define/contract (start-marionette! #:command [command FIREFOX-BIN-PATH]
                                     #:profile [profile #f]
+                                    #:port [port #f]
                                     #:safe-mode? [safe-mode? #t]
                                     #:headless? [headless? #t]
                                     #:timeout [timeout 5])
   (->* ()
        (#:command absolute-path?
         #:profile (or/c false/c absolute-path?)
+        #:port (or/c false/c (integer-in 0 65535))
         #:safe-mode? boolean?
         #:headless? boolean?
         #:timeout exact-nonnegative-integer?)
@@ -63,6 +66,17 @@
 
   (define profile-path
     (or profile (make-temporary-file "marionette~a" 'directory)))
+
+  (when port
+    (unless (directory-exists? profile-path)
+      (make-fresh-profile! command profile-path))
+
+    (displayln (build-path profile-path "prefs.js"))
+    (with-output-to-file (build-path profile-path "prefs.js")
+      #:exists 'append
+      (lambda ()
+        (display @~a{user_pref("marionette.port", @|port|);
+                     }))))
 
   (define command-args
     (for/list ([arg      (list "--safe-mode" "--headless")]
@@ -164,3 +178,32 @@
              (call-with-page! b p)))))
 
      (keyword-apply call-with-marionette! kws kw-args (list p*)))))
+
+(define (make-fresh-profile! command path [timeout 5000])
+  (define custodian (make-custodian))
+  (parameterize ([current-custodian custodian])
+    (define evt (filesystem-change-evt path))
+    (match-define (list _stdout _stdin _pid _stderr control)
+      (process* command
+                "--headless"
+                "--profile" path
+                "--no-remote"))
+
+    (define deadline
+      (+ (current-inexact-milliseconds) timeout))
+
+    (let loop ([evt evt])
+      (sync
+       (handle-evt
+        (alarm-evt deadline)
+        void)
+       (handle-evt
+        evt
+        (lambda _
+          (define evt* (filesystem-change-evt path))
+          (unless (file-exists? (build-path path "prefs.js"))
+            (loop evt*))))))
+
+    (control 'interrupt)
+    (control 'wait))
+  (custodian-shutdown-all custodian))
