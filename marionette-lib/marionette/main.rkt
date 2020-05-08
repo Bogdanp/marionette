@@ -101,7 +101,9 @@
 
                          [else
                           (raise e)]))])
-      (call-with-browser! void)))
+      (call-with-browser!
+        #:port (or port 2828)
+        void)))
 
   (lambda _
     (control 'interrupt)
