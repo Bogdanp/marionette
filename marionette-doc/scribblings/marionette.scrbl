@@ -33,7 +33,7 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 @deftogether[
   (@defproc[(start-marionette! [#:command command absolute-path? "/usr/local/bin/firefox"]
                                [#:profile profile (or/c false/c absolute-path?) #f]
-                               [#:port port (or/c false/c (integer-in 0 65535)) #f]
+                               [#:port port (or/c false/c (integer-in 1 65535)) #f]
                                [#:safe-mode? safe-mode? boolean? #t]
                                [#:headless? headless? boolean? #t]
                                [#:timeout timeout exact-nonnegative-integer? 5]) (-> void?)]

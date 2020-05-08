@@ -52,7 +52,7 @@
   (->* ()
        (#:command absolute-path?
         #:profile (or/c false/c absolute-path?)
-        #:port (or/c false/c (integer-in 0 65535))
+        #:port (or/c false/c (integer-in 1 65535))
         #:safe-mode? boolean?
         #:headless? boolean?
         #:timeout exact-nonnegative-integer?)
@@ -71,7 +71,6 @@
     (unless (directory-exists? profile-path)
       (make-fresh-profile! command profile-path))
 
-    (displayln (build-path profile-path "prefs.js"))
     (with-output-to-file (build-path profile-path "prefs.js")
       #:exists 'append
       (lambda ()
