@@ -185,7 +185,6 @@
 (define-marionette-command (WebDriver:Forward))
 (define-marionette-command (WebDriver:FullscreenWindow))
 (define-marionette-command (WebDriver:GetActiveElement))
-(define-marionette-command (WebDriver:GetActiveFrame))
 (define-marionette-command (WebDriver:GetAlertText))
 (define-marionette-command (WebDriver:GetCapabilities))
 (define-marionette-command (WebDriver:GetChromeWindowHandle))
