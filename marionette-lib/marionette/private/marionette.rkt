@@ -222,5 +222,5 @@
 (define-marionette-command (WebDriver:SwitchToFrame id [focus #t]))
 (define-marionette-command (WebDriver:SwitchToParentFrame))
 (define-marionette-command (WebDriver:SwitchToShadowRoot id))
-(define-marionette-command (WebDriver:SwitchToWindow name [focus #t]))
+(define-marionette-command (WebDriver:SwitchToWindow handle [focus #t]))
 (define-marionette-command (WebDriver:TakeScreenshot full [id] [hash #f]))
