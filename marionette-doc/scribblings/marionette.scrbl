@@ -200,7 +200,7 @@ initiate multiple browser sessions via @racket[call-with-browser!].
                          [selector non-empty-string?]
                          [#:timeout timeout (and/c real? (not/c negative?)) 30]
                          [#:visible? visible? boolean? #t]) (or/c false/c element?)]{
-  Waits for an element matching @racket[selector] to appear on
+  Waits for an element matching the given CSS @racket[selector] to appear on
   @racket[p] or @racket[timeout] milliseconds to pass.  If
   @racket[visible?] is @racket[#t], then the element must be visible
   on the page for it to match.
@@ -212,7 +212,7 @@ initiate multiple browser sessions via @racket[call-with-browser!].
    @defproc[(page-query-selector-all! [p page?]
                                       [selector non-empty-string?]) (listof element?)])]{
   Query @racket[p] for either the first or all @racket[element?]s that
-  match the given selector.
+  match the given CSS selector.
 }
 
 @deftogether[
@@ -269,7 +269,7 @@ initiate multiple browser sessions via @racket[call-with-browser!].
    @defproc[(element-query-selector-all! [e element?]
                                          [selector non-empty-string?]) (listof element?)])]{
   Query @racket[e] for either the first or all @racket[element?]s
-  belonging to it that match the given selector.
+  belonging to it that match the given CSS selector.
 }
 
 @deftogether[
