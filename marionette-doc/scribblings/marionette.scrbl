@@ -15,7 +15,8 @@
 @(define protocol-link "https://firefox-source-docs.mozilla.org/testing/marionette/marionette/Protocol.html")
 
 Marionette lets you control the Firefox web browser via the
-@hyperlink[protocol-link]{Marionette Protocol}.
+@hyperlink[protocol-link]{Marionette Protocol}. This is the same
+interface used by Selenium, via geckodriver.
 
 To use this library, you need to have a running Firefox instance with
 the marionette protocol enabled.  To do this, all you have to do is
@@ -26,6 +27,102 @@ run the firefox binary with the @literal{-marionette} flag.
 The protocol doesn't (seem to) support operating on more than one page
 concurrently within one browser session.  To get around this, simply
 initiate multiple browser sessions via @racket[call-with-browser!].
+
+@section[#:tag "examples"]{Examples}
+
+Here are some simple examples of using marionette. The first saves a PNG file
+containing an image of the current racket-lang.org webpage:
+
+@codeblock|{
+#lang racket
+
+(require marionette)
+
+(define data
+  (call-with-browser!
+   (lambda (b)
+     (call-with-page!
+      b
+      (lambda (p)
+        (page-goto! p "https://racket-lang.org")
+        (call-with-page-screenshot!
+         p
+         (lambda (data) data)))))))
+
+(define filename (make-temporary-file "~a.png"))
+
+(with-output-to-file filename
+  #:exists 'truncate/replace
+  (lambda _
+    (write-bytes data)))
+
+(printf "filename of page screenshot: ~v\n" (path->string filename))
+}|
+
+This next example dowloads the HTML content of a password-protected
+web page:
+
+@codeblock|{
+#lang racket
+
+(require marionette)
+
+(define username "zipnarg")
+
+(define nextcatalog-csc-minor-url
+ "https://nextcatalog-admin.calpoly.edu/collegesandprograms/\
+collegeofengineering/computersciencesoftwareengineering/\
+computerscienceminor/")
+
+(define profile-path
+ (build-path "/Users/zipnarg/Library/Application Support/"
+             "Firefox/Profiles/s9y75gtr.wazoo"))
+
+(define content
+ (call-with-marionette/browser/page!
+  #:profile profile-path
+  (λ (page)
+    (page-goto! page nextcatalog-csc-minor-url)
+    (printf "ready? ~v\n" (page-loaded? page))
+    (printf "page title: ~v\n" (page-title page))
+    (let ()
+      (define username-elt (page-query-selector! page "#username"))
+      (cond [username-elt
+             (element-type! username-elt username)]
+            [else
+             (error 'login "couldn't find username field.")]))
+    (let ()
+      (define password-elt (page-query-selector! page "#password"))
+      (cond [password-elt
+             (printf "password: ")
+             (define str (read-line))
+             (element-type! password-elt str)]
+            [else
+             (error 'login "couldn't find password field.")]))
+    (let ()
+      (define form-button (page-query-selector! page ".form-button"))
+      (cond [form-button
+             (element-click! form-button)]
+            [else
+             (error 'login "couldn't find login button.")]))
+    ;; wait until the page is ready and the title is no longer
+    ;; that of the login page
+    (let loop ()
+      (define loaded? (page-loaded? page))
+      (cond [loaded?
+             (define title (page-title page))
+             (cond [(equal? title "Cal Poly Web Login Service")
+                    (printf "still login screen title, waiting...\n")
+                    (sleep 1)
+                    (loop)]
+                   [else 'ok])]
+            [else
+             (printf "not ready, waiting...\n")
+             (sleep 1)
+             (loop)]))
+    (printf "final page title: ~v\n" (page-title page))
+    (page-content page))))
+}|
 
 @section[#:tag "reference"]{Reference}
 @defmodule[marionette]
