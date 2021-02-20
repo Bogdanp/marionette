@@ -5,6 +5,7 @@
 
 (define deps '("base"))
 (define build-deps '("marionette-lib"
+                     "sandbox-lib"
                      "scribble-lib"
 
                      "net-doc"

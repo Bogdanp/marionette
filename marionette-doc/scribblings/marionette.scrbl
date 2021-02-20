@@ -1,11 +1,16 @@
 #lang scribble/manual
 
-@(require (for-label net/url
+@(require racket/runtime-path
+          racket/sandbox
+          scribble/example
+          (for-label json
+                     marionette
+                     net/url
                      racket/base
                      racket/contract
+                     racket/file
                      racket/math
-                     racket/string
-                     marionette))
+                     racket/string))
 
 @title{Marionette}
 @author[(author+email "Bogdan Popa" "bogdan@defn.io")]
@@ -33,31 +38,40 @@ initiate multiple browser sessions via @racket[call-with-browser!].
 Here are some simple examples of using marionette. The first saves a PNG file
 containing an image of the current racket-lang.org webpage:
 
-@codeblock|{
-#lang racket
+@(begin
+   (define-syntax-rule (interaction e ...) (examples #:label #f e ...))
+   (define-runtime-path log-file "examples.rktd")
+   (define log-mode (if (getenv "MARIONETTE_RECORD") 'record 'replay))
+   (define (make-ex-eval log-file)
+     (make-log-based-eval log-file log-mode))
+   (define ex-eval (make-ex-eval log-file)))
 
-(require marionette)
 
+@interaction[
+#:eval ex-eval
+(require marionette
+         racket/file)
+
+(code:line)
 (define data
-  (call-with-browser!
-   (lambda (b)
-     (call-with-page!
-      b
-      (lambda (p)
-        (page-goto! p "https://racket-lang.org")
-        (call-with-page-screenshot!
-         p
-         (lambda (data) data)))))))
+  (call-with-marionette/browser/page!
+   (lambda (p)
+     (page-goto! p "https://racket-lang.org")
+     (call-with-page-screenshot! p values))))
 
-(define filename (make-temporary-file "~a.png"))
+(code:line)
+(define filename
+  (make-temporary-file "~a.png"))
 
+(code:line)
 (with-output-to-file filename
   #:exists 'truncate/replace
-  (lambda _
+  (lambda ()
     (write-bytes data)))
 
+(code:line)
 (printf "filename of page screenshot: ~v\n" (path->string filename))
-}|
+]
 
 This next example dowloads the HTML content of a password-protected
 web page:
