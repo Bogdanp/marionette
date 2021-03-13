@@ -51,12 +51,15 @@
                                     #:timeout [timeout 5])
   (->* ()
        (#:command absolute-path?
-        #:profile (or/c false/c absolute-path?)
-        #:port (or/c false/c (integer-in 1 65535))
+        #:profile (or/c #f absolute-path?)
+        #:port (or/c #f (integer-in 1 65535))
         #:safe-mode? boolean?
         #:headless? boolean?
         #:timeout exact-nonnegative-integer?)
        (-> void?))
+
+  (unless command
+    (raise-user-error 'start-marionette! "could not determine path to Firefox executable, please provide one via #:command"))
 
   (define deadline
     (+ (current-seconds) timeout))
