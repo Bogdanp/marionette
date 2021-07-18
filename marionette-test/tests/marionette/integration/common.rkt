@@ -9,5 +9,5 @@
 (define (run-integration-tests . args)
   (when (equal? (getenv "MARIONETTE_INTEGRATION_TESTS") "x")
     (call-with-marionette!
-     (lambda _
+      (lambda ()
        (apply run-tests args)))))

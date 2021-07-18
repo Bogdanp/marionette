@@ -4,16 +4,16 @@
                      racket/format
                      syntax/parse)
          json
-         racket/async-channel
          racket/contract
+         racket/format
          racket/list
          racket/match
+         racket/port
          racket/string
+         racket/tcp
          "../capabilities.rkt"
          "../timeouts.rkt"
-         "transport.rkt"
-         "util.rkt"
-         "waiters.rkt")
+         "util.rkt")
 
 (provide
  exn:fail:marionette?
@@ -34,25 +34,15 @@
 (struct exn:fail:marionette exn:fail ())
 (struct exn:fail:marionette:command exn:fail:marionette (stacktrace))
 
-(struct marionette
-  (transport
-   dispatcher
-   waiters))
+(struct marionette (mgr))
 
 (define/contract (make-marionette host port)
   (-> non-empty-string? (integer-in 1 65535) marionette?)
-
-  (define chan (make-async-channel))
-  (define transport (make-transport #:host host
-                                    #:port port
-                                    #:chan chan))
-  (define waiters (box (make-waiter-set)))
-  (define dispatcher (make-dispatcher waiters chan))
-  (marionette transport dispatcher waiters))
+  (marionette (make-manager host port)))
 
 (define/contract (marionette-connect! m c)
   (-> marionette? capabilities? jsexpr?)
-  (transport-connect! (marionette-transport m))
+  (sync (send (marionette-mgr m) connect))
   (sync (marionette-new-session! m
                                  (timeouts->jsexpr (capabilities-timeouts c))
                                  (capabilities-page-load-strategy c)
@@ -62,68 +52,198 @@
 (define/contract (marionette-disconnect! m)
   (-> marionette? void?)
   (sync (marionette-delete-session! m))
-  (transport-disconnect! (marionette-transport m)))
+  (sync (send (marionette-mgr m) disconnect)))
 
 (define/contract (marionette-send! m command [parameters (hasheq)])
   (->* (marionette? non-empty-string?) (jsexpr?) (evt/c jsexpr?))
-  (define t (marionette-transport m))
-  (unless (transport-live? t)
-    (raise (exn:fail:marionette "not connected" (current-continuation-marks)) ))
+  (handle-evt
+   (send (marionette-mgr m) send command parameters)
+   (lambda (res)
+     (begin0 res
+       (when (exn:fail? res)
+         (raise res))))))
 
-  (let ([command-id #f]
-        [command-chan #f])
-    (box-swap! (marionette-waiters m) (lambda (ws)
-                                        (define-values (command-id* command-chan* ws*)
-                                          (waiter-set-emit ws))
+(define (oops who fmt . args)
+  (exn:fail:marionette
+   (~a who ": " (apply format fmt args))
+   (current-continuation-marks)))
 
-                                        (begin0 ws*
-                                          (set! command-id command-id*)
-                                          (set! command-chan command-chan*))))
-    (transport-send! t (list 0 command-id command parameters))
-    (handle-evt command-chan (lambda (res)
-                               (match res
-                                 [(cons 'ok data) data]
-                                 [(cons 'err data)
-                                  (raise (exn:fail:marionette:command
-                                          (hash-ref data 'message "")
-                                          (current-continuation-marks)
-                                          (hash-ref data 'stacktrace "")))])))))
+(struct Cmd (nack-evt res-ch))
+(struct Connect Cmd (host port))
+(struct Disconnect Cmd ())
+(struct Reply Cmd (id))
 
-(define (make-dispatcher waiters ->chan)
-  (thread
-   (lambda _
-     (let loop ()
-       (with-handlers ([exn:fail?
-                        (lambda (e)
-                          (log-marionette-warning (format "encountered unhandled exception: ~a" (exn-message e))))])
-         (match (sync ->chan)
-           [(list 1 command-id error-data (js-null))
-            (cond
-              [(waiter-set-ref (unbox waiters) command-id)
-               => (lambda (command-chan)
-                    (log-marionette-debug (format "sending error to channel for command ~v" command-id))
-                    (channel-put command-chan (cons 'err error-data)))]
+(define (make-manager host port)
+  (thread/suspend-to-kill
+   (lambda ()
+     (let loop ([in #f]
+                [out #f]
+                [cmds null]
+                [waiters (hasheqv)]
+                [next-id 0])
+       (define connected?
+         (and in out
+              (not (port-closed? in))
+              (not (port-closed? out))))
+       (apply
+        sync
+        (handle-evt
+         (thread-receive-evt)
+         (lambda (_)
+           (match (thread-receive)
+             [`(connect ,nack-evt ,res-ch)
+              (if (and in out)
+                  (loop in out cmds waiters next-id)
+                  (loop in out (cons (Connect nack-evt res-ch host port) cmds) waiters next-id))]
 
-              [else
-               (log-marionette-warning (format "received error for unknown command ~v: ~a" command-id error-data))])]
+             [`(disconnect ,nack-evt ,res-ch)
+              (loop in out (cons (Disconnect nack-evt res-ch) cmds) waiters next-id)]
 
-           [(list 1 command-id (js-null) data)
-            (cond
-              [(waiter-set-ref (unbox waiters) command-id)
-               => (lambda (command-chan)
-                    (log-marionette-debug (format "sending data to channel for command ~v" command-id))
-                    (channel-put command-chan (cons 'ok data)))]
+             [`(send ,name ,params ,nack-evt ,res-ch)
+              (cond
+                [connected?
+                 (with-handlers ([exn:fail?
+                                  (lambda (e)
+                                    (log-marionette-error "failed to send command: ~.s(~.s)~n  error: ~a" name params (exn-message e))
+                                    (define cmd (Reply nack-evt res-ch e))
+                                    (loop in out (cons cmd cmds) waiters next-id))])
+                   (write-data (list 0 next-id name params) out)
+                   (loop in out cmds (hash-set waiters next-id (list nack-evt res-ch)) (add1 next-id)))]
 
-              [else
-               (log-marionette-warning (format "received data for unknown command ~v: ~a" command-id data))])]
+                [else
+                 (define cmd (Reply nack-evt res-ch (oops 'command "not connected")))
+                 (loop in out (cons cmd cmds) waiters next-id)])])))
 
-           [payload
-            (log-marionette-warning (format "received invalid data: ~a" payload))]))
+        (handle-evt
+         (or (and connected? in) never-evt)
+         (lambda (p)
+           (match (read-data p)
+             [(? eof-object?)
+              (log-marionette-warning "connection closed by remote")
+              (loop #f #f cmds waiters next-id)]
 
-       (loop)))))
+             [`(1 ,id ,data ,(js-null))
+              (cond
+                [(hash-ref waiters id #f)
+                 => (match-lambda
+                      [`(,nack-evt ,res-ch)
+                       (define err
+                         (exn:fail:marionette:command
+                          (hash-ref data 'message "")
+                          (current-continuation-marks)
+                          (hash-ref data 'stacktrace "")))
+                       (define cmd (Reply nack-evt res-ch err))
+                       (loop in out (cons cmd cmds) (hash-remove waiters id) next-id)])]
+                [else
+                 (log-marionette-warning "received error response to unkown waiter (~s): ~.s" id data)
+                 (loop in out cmds waiters next-id)])]
 
-(define command-param-missing
-  (make-parameter 'missing))
+             [`(1 ,id ,(js-null) ,data)
+              (cond
+                [(hash-ref waiters id #f)
+                 => (match-lambda
+                      [`(,nack-evt ,res-ch)
+                       (define cmd (Reply nack-evt res-ch data))
+                       (loop in out (cons cmd cmds) (hash-remove waiters id) next-id)])]
+                [else
+                 (log-marionette-warning "received response to unknown waiter (~s): ~.s" id data)
+                 (loop in out cmds waiters next-id)])]
+
+             [data
+              (log-marionette-warning "received invalid data: ~.s" data)
+              (loop in out cmds waiters next-id)])))
+
+        (append
+         (for/list ([cmd (in-list cmds)])
+           (match cmd
+             [(Connect _ res-ch host port)
+              (cond
+                [connected?
+                 (handle-evt
+                  (channel-put-evt res-ch (oops 'connect "already connected"))
+                  (lambda (_)
+                    (loop in out (remq cmd cmds) waiters next-id)))]
+
+                [else
+                 (with-handlers ([exn:fail?
+                                  (lambda (e)
+                                    (log-marionette-warning "connect failed: ~a" (exn-message e))
+                                    (handle-evt
+                                     (channel-put-evt res-ch e)
+                                     (lambda (_)
+                                       (loop #f #f (remq cmd cmds) waiters next-id))))])
+                   (let-values ([(in out) (tcp-connect host port)])
+                     (log-marionette-debug "connected to ~a:~a" host port)
+                     (define preamble (read-data in))
+                     (cond
+                       [(and (equal? (hash-ref preamble 'applicationType #f) "gecko")
+                             (equal? (hash-ref preamble 'marionetteProtocol #f) 3))
+                        (log-marionette-debug "successful preamble")
+                        (sync/timeout 0 (channel-put-evt res-ch (void)))
+                        (loop in out (remq cmd cmds) waiters next-id)]
+
+                       [else
+                        (log-marionette-warning "invalid preamble")
+                        (close-input-port in)
+                        (close-output-port out)
+                        (define err (oops 'connect "the other end doesn't implement the v3 marionette protocol"))
+                        (sync/timeout 0 (channel-put-evt res-ch err))
+                        (loop #f #f (remq cmd cmds) waiters next-id)])))])]
+
+             [(Disconnect _ res-ch)
+              (handle-evt
+               (channel-put-evt res-ch (void))
+               (lambda (_)
+                 (when connected?
+                   (close-input-port in)
+                   (close-output-port out))
+                 (loop #f #f (remq cmd cmds) waiters next-id)))]
+
+             [(Reply _ res-ch rep)
+              (handle-evt
+               (channel-put-evt res-ch rep)
+               (lambda (_)
+                 (loop in out (remq cmd cmds) waiters next-id)))]))
+         (for/list ([cmd (in-list cmds)])
+           (handle-evt
+            (Cmd-nack-evt cmd)
+            (lambda (_)
+              (loop in out (remq cmd cmds) waiters next-id))))))))))
+
+(define (send* mgr cmd . args)
+  (handle-evt
+   (nack-guard-evt
+    (lambda (nack-evt)
+      (define res-ch (make-channel))
+      (begin0 res-ch
+        (thread-resume mgr (current-thread))
+        (thread-send mgr `(,cmd ,@args ,nack-evt ,res-ch)))))
+   (lambda (msg)
+     (begin0 msg
+       (when (exn:fail? msg)
+         (raise msg))))))
+
+(define-syntax-rule (send who cmd arg ...)
+  (send* who 'cmd arg ...))
+
+(define (read-data in)
+  (match (regexp-match #rx"([1-9][0-9]*):" in)
+    [`(,_ ,len-str)
+     (define len (string->number (bytes->string/utf-8 len-str)))
+     (read-json (make-limited-input-port in len #f))]
+
+    [#f eof]))
+
+(define (write-data data out)
+  (define data-bs (jsexpr->bytes data))
+  (write-string (number->string (bytes-length data-bs)) out)
+  (write-bytes #":" out)
+  (write-bytes data-bs out)
+  (flush-output out))
+
+(define missing (gensym 'missing))
+(define (missing? v)
+  (eq? missing v))
 
 (define-syntax (define-marionette-command stx)
   (define (make-command-name stx name)
@@ -139,7 +259,7 @@
 
   (define-syntax-class param
     (pattern  name:id               #:with spec #'name)
-    (pattern [name:id]              #:with spec #'(name (command-param-missing)))
+    (pattern [name:id]              #:with spec #'(name missing))
     (pattern [name:id default:expr] #:with spec #'(name default)))
 
   (syntax-parse stx
@@ -159,7 +279,7 @@
                                 (filter-map
                                  (lambda (pair)
                                    (cond
-                                     [(eq? (cdr pair) (command-param-missing)) #f]
+                                     [(missing? (cdr pair)) #f]
                                      [else pair]))
                                  (list command-param ...)))))
            (provide name)))]))

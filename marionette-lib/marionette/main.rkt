@@ -86,7 +86,7 @@
                #:when enabled?)
       arg))
 
-  (match-define (list stdout stdin pid stderr control)
+  (match-define (list _stdout _stdin _pid _stderr control)
     (apply process*
            command
            "--profile" profile-path
@@ -104,14 +104,11 @@
 
                          [else
                           (raise e)]))])
-      (call-with-browser!
-        #:port (or port 2828)
-        void)))
+      (call-with-browser! #:port (or port 2828) void)))
 
-  (lambda _
+  (lambda ()
     (control 'interrupt)
     (control 'wait)
-
     (when delete-profile?
       (delete-directory/files profile-path))))
 
@@ -119,13 +116,12 @@
   (make-keyword-procedure
    (lambda (kws kw-args p . args)
      (define stop-marionette! void)
-
      (dynamic-wind
-       (lambda _
+       (lambda ()
          (set! stop-marionette! (keyword-apply start-marionette! kws kw-args args)))
-       (lambda _
+       (lambda ()
          (p))
-       (lambda _
+       (lambda ()
          (stop-marionette!))))))
 
 (define/contract (call-with-browser! p
@@ -140,24 +136,25 @@
 
   (define b #f)
   (dynamic-wind
-    (lambda _
-      (set! b (browser-connect! #:host host
-                                #:port port
-                                #:capabilities capabilities)))
-    (lambda _
+    (lambda ()
+      (parameterize-break #t
+        (set! b (browser-connect! #:host host
+                                  #:port port
+                                  #:capabilities capabilities))))
+    (lambda ()
       (p b))
-    (lambda _
+    (lambda ()
       (browser-disconnect! b))))
 
 (define/contract (call-with-page! b p)
   (-> browser? (-> page? any) any)
   (define page #f)
   (dynamic-wind
-    (lambda _
+    (lambda ()
       (set! page (make-browser-page! b)))
-    (lambda _
+    (lambda ()
       (p page))
-    (lambda _
+    (lambda ()
       (page-close! page))))
 
 
@@ -167,7 +164,7 @@
   (make-keyword-procedure
    (lambda (kws kw-args p)
      (define p*
-       (lambda _
+       (lambda ()
          (call-with-browser! p)))
 
      (keyword-apply call-with-marionette! kws kw-args (list p*)))))
@@ -176,7 +173,7 @@
   (make-keyword-procedure
    (lambda (kws kw-args p)
      (define p*
-       (lambda _
+       (lambda ()
          (call-with-browser!
            (lambda (b)
              (call-with-page! b p)))))
