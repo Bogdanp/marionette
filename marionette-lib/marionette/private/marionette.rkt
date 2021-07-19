@@ -141,6 +141,7 @@
               (loop #f #f cmds waiters next-id)]
 
              [`(1 ,id ,data ,(js-null))
+              (log-marionette-debug "received error response to command ~s with data ~.s" id data)
               (cond
                 [(hash-ref waiters id #f)
                  => (match-lambda
@@ -158,6 +159,7 @@
                  (loop in out cmds waiters next-id)])]
 
              [`(1 ,id ,(js-null) ,data)
+              (log-marionette-debug "received response to command ~s with data ~.s" id data)
               (cond
                 [(hash-ref waiters id #f)
                  => (match-lambda
