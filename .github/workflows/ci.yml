@@ -20,6 +20,6 @@ jobs:
         version: '8.2'
     - run: raco pkg install --auto --skip-installed marionette-lib/ marionette-doc/ marionette-test/ marionette/
     - run: raco pkg update marionette-lib/ marionette-doc/ marionette-test/ marionette/
-    - run: raco test marionette-test/
+    - run: env PLTSTDERR='error debug@marionette' raco test marionette-test/
       env:
         MARIONETTE_INTEGRATION_TESTS: x
