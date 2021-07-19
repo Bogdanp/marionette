@@ -34,6 +34,11 @@
 (struct exn:fail:marionette exn:fail ())
 (struct exn:fail:marionette:command exn:fail:marionette (stacktrace))
 
+(define (oops who fmt . args)
+  (exn:fail:marionette
+   (~a who ": " (apply format fmt args))
+   (current-continuation-marks)))
+
 (struct marionette (mgr))
 
 (define/contract (make-marionette host port)
@@ -63,11 +68,6 @@
        (when (exn:fail? res)
          (raise res))))))
 
-(define (oops who fmt . args)
-  (exn:fail:marionette
-   (~a who ": " (apply format fmt args))
-   (current-continuation-marks)))
-
 (struct Cmd (nack-evt res-ch))
 (struct Connect Cmd (host port))
 (struct Disconnect Cmd ())
@@ -92,7 +92,7 @@
          (lambda (_)
            (match (thread-receive)
              [`(connect ,nack-evt ,res-ch)
-              (if (and in out)
+              (if connected?
                   (loop in out cmds waiters next-id)
                   (loop in out (cons (Connect nack-evt res-ch host port) cmds) waiters next-id))]
 

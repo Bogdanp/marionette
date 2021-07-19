@@ -1,0 +1,25 @@
+on: [push, pull_request]
+name: CI
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Cache Racket dependencies
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/racket
+          ~/.local/share/racket
+        key: ${{ runner.os }}-racket-8.2
+    - uses: Bogdanp/setup-racket@v1.5
+      with:
+        architecture: 'x64'
+        distribution: 'full'
+        variant: 'CS'
+        version: '8.2'
+    - run: raco pkg install --auto --skip-installed marionette-lib/ marionette-doc/ marionette-test/ marionette/
+    - run: raco pkg update marionette-lib/ marionette-doc/ marionette-test/ marionette/
+    - run: raco test marionette-test/
+      env:
+        MARIONETTE_INTEGRATION_TESTS: x
