@@ -255,10 +255,6 @@ computerscienceminor/")
   handle and belong to the same marionette.
 }
 
-@defproc[(page-select! [p page?]) void?]{
-  Tells the browser to switch to @racket[p].
-}
-
 @defproc[(page-close! [p page?]) void?]{
   Tells the browser to close @racket[p].
 }
@@ -411,12 +407,12 @@ computerscienceminor/")
 @subsection[#:tag "reference/capabilities"]{Capabilities}
 
 @deftogether[
-  (@defthing[page-load-strategy/c (or/c "none" "eager" "normal")]
-   @defthing[unhandled-prompt-behavior/c (or/c "dismiss"
-                                               "dismiss and notify"
-                                               "accept"
-                                               "accept and notify"
-                                               "ignore")])]{
+  (@defthing[page-load-strategy/c (or/c 'none 'eager 'normal)]
+   @defthing[unhandled-prompt-behavior/c (or/c 'dismiss
+                                               'dismiss-and-notify
+                                               'accept
+                                               'accept-and-notify
+                                               'ignore)])]{
 
   Contracts used by the functions in this module.
 }
@@ -432,8 +428,8 @@ computerscienceminor/")
 }
 
 @defproc[(make-capabilities [#:timeouts timeouts timeouts? (make-timeouts)]
-                            [#:page-load-strategy page-load-strategy page-load-strategy/c "normal"]
-                            [#:unhandled-prompt-behavior unhandled-prompt-behavior unhandled-prompt-behavior/c "dismiss and notify"]
+                            [#:page-load-strategy page-load-strategy page-load-strategy/c 'normal]
+                            [#:unhandled-prompt-behavior unhandled-prompt-behavior unhandled-prompt-behavior/c 'dismiss-and-notify]
                             [#:accept-insecure-certs? accept-insecure-certs? boolean? #f]) capabilities?]{
 
   A convenience constructor for @racket[capabilities].
