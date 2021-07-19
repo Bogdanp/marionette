@@ -2,7 +2,6 @@
 
 (require racket/contract
          racket/function
-         racket/list
          racket/match
          racket/string
          "capabilities.rkt"
@@ -96,10 +95,11 @@
 
 (define/contract (make-browser-page! b)
   (-> browser? page?)
-  (call-with-browser-script! b "window.open()")
-  (define p (last (browser-pages b)))
-  (begin0 p
-    (browser-focus! b p)))
+  (sync
+   (handle-evt
+    (marionette-new-window! (browser-marionette b))
+    (lambda (res)
+      (make-page (hash-ref res 'handle) (browser-marionette b))))))
 
 (define/contract (browser-capabilities b)
   (-> browser? capabilities?)

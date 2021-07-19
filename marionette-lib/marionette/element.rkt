@@ -37,7 +37,7 @@
 (define element-handle/c
   (hash/c symbol? string?))
 
-(define (element=? element-1 element-2 [recursive? #f])
+(define (element=? element-1 element-2)
   (equal? (element-handle element-1)
           (element-handle element-2)))
 

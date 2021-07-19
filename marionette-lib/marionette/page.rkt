@@ -4,7 +4,6 @@
          net/base64
          net/url
          racket/contract
-         racket/function
          racket/match
          racket/string
          "element.rkt"
@@ -16,87 +15,95 @@
  exn:fail:marionette:page:script?
  exn:fail:marionette:page:script-cause
 
- make-page
- page?
- page=?
- page-id
- page-close!
- page-refresh!
- page-goto!
- page-go-back!
- page-go-forward!
-
- page-execute!
- page-execute-async!
-
- page-wait-for!
- page-query-selector!
- page-query-selector-all!
-
- page-interactive?
- page-loaded?
-
- page-title
- page-url
- page-content
- set-page-content!
-
- page-alert-text
- page-alert-accept!
- page-alert-dismiss!
- page-alert-type!
-
- call-with-page-screenshot!)
+ (contract-out
+  [make-page (-> string? marionette? page?)]
+  [page? (-> any/c boolean?)]
+  [page=? (-> page? page? boolean?)]
+  [page-id (-> page? string?)]
+  [page-select! (-> page? void?)]
+  [page-close! (-> page? void?)]
+  [page-refresh! (-> page? void?)]
+  [page-goto! (-> page? (or/c url? string?) void?)]
+  [page-go-back! (-> page? void?)]
+  [page-go-forward! (-> page? void?)]
+  [page-execute! (-> page? string? jsexpr? ... any/c)]
+  [page-execute-async! (-> page? string? jsexpr? ... any/c)]
+  [page-wait-for! (->* (page? string?)
+                       (#:timeout (and/c real? (not/c negative?))
+                        #:visible? boolean?)
+                       (or/c #f element?))]
+  [page-query-selector! (-> page? string? (or/c #f element?))]
+  [page-query-selector-all! (-> page? string? (listof element?))]
+  [page-interactive? (-> page? boolean?)]
+  [page-loaded? (-> page? boolean?)]
+  [page-title (-> page? string?)]
+  [page-url (-> page? url?)]
+  [page-content (-> page? string?)]
+  [set-page-content! (-> page? string? void?)]
+  [page-alert-text (-> page? string?)]
+  [page-alert-accept! (-> page? void?)]
+  [page-alert-dismiss! (-> page? void?)]
+  [page-alert-type! (-> page? string? void?)]
+  [call-with-page-screenshot! (->* (page? (-> bytes? any))
+                                   (#:full? boolean?)
+                                   any)]))
 
 (struct exn:fail:marionette:page exn:fail:marionette ())
 (struct exn:fail:marionette:page:script exn:fail:marionette:page (cause))
 
-(define (page=? page-1 page-2 [recursive? #f])
-  (equal? (page-id page-1)
-          (page-id page-2)))
+(define (page=? page-1 page-2)
+  (and (eq? (page-marionette page-1)
+            (page-marionette page-2))
+       (equal? (page-id page-1)
+               (page-id page-2))))
 
-(define (hash-page p r)
-  (r (page-id p)))
+(struct page (id marionette))
 
-(struct page (id marionette)
-  #:methods gen:equal+hash
-  [(define equal-proc page=?)
-   (define hash-proc  hash-page)
-   (define hash2-proc hash-page)])
-
-(define/contract (make-page id marionette)
-  (-> non-empty-string? marionette? page?)
+(define (make-page id marionette)
   (page id marionette))
 
-(define/contract (page-close! p)
-  (-> page? void?)
-  (void (page-execute! p "window.close()")))
+(define (call-with-page p f)
+  (dynamic-wind
+    (λ () (sync/enable-break (marionette-switch-to-window! (page-marionette p) (page-id p))))
+    (λ () (f))
+    (λ () (void))))
 
-(define/contract (page-refresh! p)
-  (-> page? void?)
-  (void (sync (marionette-refresh! (page-marionette p)))))
+(define-syntax-rule (with-page p e0 e ...)
+  (call-with-page p (λ () e0 e ...)))
 
-(define/contract (page-goto! p url)
-  (-> page? (or/c url? string?) void?)
-  (void (sync (marionette-navigate! (page-marionette p)
-                                    (cond
-                                      [(url? url) (url->string url)]
-                                      [else url])))))
+(define (page-select! p)
+  (syncv (marionette-switch-to-window! (page-marionette p) (page-id p))))
 
-(define/contract (page-go-back! p)
-  (-> page? void?)
-  (void (sync (marionette-back! (page-marionette p)))))
+(define (page-close! p)
+  (with-page p
+    (syncv (marionette-close-window! (page-marionette p)))))
 
-(define/contract (page-go-forward! p)
-  (-> page? void?)
-  (void (sync (marionette-forward! (page-marionette p)))))
+(define (page-refresh! p)
+  (with-page p
+    (syncv (marionette-refresh! (page-marionette p)))))
 
-(define/contract (page-execute! p s . args)
-  (-> page? string? jsexpr? ... any/c)
-  (sync
-   (handle-evt
-    (marionette-execute-script! (page-marionette p) s args)
-    (curryr hash-ref 'value))))
+(define (page-goto! p url)
+  (with-page p
+    (syncv (marionette-navigate!
+            (page-marionette p)
+            (cond
+              [(url? url) (url->string url)]
+              [else url])))))
+
+(define (page-go-back! p)
+  (with-page p
+    (syncv (marionette-back! (page-marionette p)))))
+
+(define (page-go-forward! p)
+  (with-page p
+    (syncv (marionette-forward! (page-marionette p)))))
+
+(define (page-execute! p s . args)
+  (with-page p
+    (sync
+     (handle-evt
+      (marionette-execute-script! (page-marionette p) s args)
+      res-value))))
 
 (define (wrap-async-script s)
   (define template
@@ -114,63 +121,60 @@ SCRIPT
 
   (format template s))
 
-(define/contract (page-execute-async! p s . args)
-  (-> page? string? jsexpr? ... any/c)
-  (sync
-   (handle-evt
-    (marionette-execute-async-script! (page-marionette p) (wrap-async-script s) args)
-    (lambda (res)
-      (match (hash-ref res 'value)
-        [(hash-table ('error (js-null))
-                     ('value value   )) value]
+(define (page-execute-async! p s . args)
+  (with-page p
+    (sync
+     (handle-evt
+      (marionette-execute-async-script! (page-marionette p) (wrap-async-script s) args)
+      (λ (res)
+        (match (hash-ref res 'value)
+          [(hash-table ('error (js-null))
+                       ('value value   ))
+           value]
 
-        [(hash-table ('error err))
-         (raise (exn:fail:marionette:page:script (format "async script execution failed: ~a" err)
-                                                 (current-continuation-marks)
-                                                 err))]
+          [(hash-table ('error err))
+           (raise (exn:fail:marionette:page:script
+                   (format "async script execution failed: ~a" err)
+                   (current-continuation-marks)
+                   err))]
 
-        [(? (curry eq? (json-null)))
-         (raise (exn:fail:marionette:page:script "async script execution aborted"
-                                                 (current-continuation-marks)
-                                                 #f))])))))
+          [(js-null)
+           (raise (exn:fail:marionette:page:script
+                   "async script execution aborted"
+                   (current-continuation-marks)
+                   #f))]))))))
 
-(define/contract (page-title p)
-  (-> page? string?)
-  (sync
-   (handle-evt
-    (marionette-get-title! (page-marionette p))
-    (curryr hash-ref 'value))))
+(define (page-title p)
+  (with-page p
+    (sync
+     (handle-evt
+      (marionette-get-title! (page-marionette p))
+      res-value))))
 
-(define/contract (page-url p)
-  (-> page? url?)
-  (string->url
-   (sync
-    (handle-evt
-     (marionette-get-current-url! (page-marionette p))
-     (curryr hash-ref 'value)))))
+(define (page-url p)
+  (with-page p
+    (sync
+     (handle-evt
+      (marionette-get-current-url! (page-marionette p))
+      (compose1 string->url res-value)))))
 
-(define/contract (page-content p)
-  (-> page? string?)
-  (sync
-   (handle-evt
-    (marionette-get-page-source! (page-marionette p))
-    (curryr hash-ref 'value))))
+(define (page-content p)
+  (with-page p
+    (sync
+     (handle-evt
+      (marionette-get-page-source! (page-marionette p))
+      res-value))))
 
-(define/contract (set-page-content! p c)
-  (-> page? string? void?)
-  (void
-   (page-execute! p "document.documentElement.innerHTML = arguments[0]" c)))
+(define (set-page-content! p c)
+  (void (page-execute! p "document.documentElement.innerHTML = arguments[0]" c)))
 
-(define/contract (page-readystate p)
-  (-> page? jsexpr?)
+(define (page-readystate p)
   (page-execute! p "return document.readyState"))
 
-(define/contract (page-interactive? p)
-  (-> page? boolean?)
+(define (page-interactive? p)
   (and (member (page-readystate p) '("interactive" "complete")) #t))
 
-(define/contract (page-loaded? p)
-  (-> page? boolean?)
+(define (page-loaded? p)
   (and (member (page-readystate p) '("complete")) #t))
 
 (define wait-for-element-script #<<SCRIPT
@@ -228,21 +232,18 @@ function findNode() {
 SCRIPT
   )
 
-(define/contract (page-wait-for! p selector
-                                 #:timeout [timeout 30]
-                                 #:visible? [visible? #t])
-  (->* (page? non-empty-string?)
-       (#:timeout (and/c real? (not/c negative?))
-        #:visible? boolean?)
-       (or/c false/c element?))
+(define (page-wait-for! p selector
+                        #:timeout [timeout 30]
+                        #:visible? [visible? #t])
+  (define res-ch
+    (make-channel))
 
-  (define chan (make-channel))
   (thread
-   (lambda ()
+   (λ ()
      (let loop ()
        (define handle
          (with-handlers ([exn:fail:marionette?
-                          (lambda (e)
+                          (λ (e)
                             (cond
                               [(or (string-contains? (exn-message e) "unloaded")
                                    (string-contains? (exn-message e) "async script execution failed")
@@ -250,61 +251,66 @@ SCRIPT
                                    (string-contains? (exn-message e) "context has been discarded"))
                                (loop)]
 
-                              [else (raise e)]))])
-           (page-execute-async! p wait-for-element-script selector (* timeout 1000) visible?)))
+                              [else
+                               (raise e)]))])
+           (with-page p
+             (page-execute-async! p wait-for-element-script selector (* timeout 1000) visible?))))
 
-       (channel-put chan (and handle (page-query-selector! p selector))))))
+       (channel-put res-ch (and handle (page-query-selector! p selector))))))
 
-  (sync/timeout timeout chan))
+  (sync/timeout timeout res-ch))
 
-(define/contract (page-query-selector! p selector)
-  (-> page? non-empty-string? (or/c false/c element?))
+(define (page-query-selector! p selector)
   (with-handlers ([exn:fail:marionette:command?
-                   (lambda (e)
+                   (λ (e)
                      (cond
                        [(string-contains? (exn-message e) "Unable to locate element") #f]
                        [else (raise e)]))])
+    (with-page p
+      (sync
+       (handle-evt
+        (marionette-find-element! (page-marionette p) selector)
+        (λ (res)
+          (make-element
+           (hash-ref res 'value)
+           (page-marionette p))))))))
+
+(define (page-query-selector-all! p selector)
+  (with-page p
     (sync
      (handle-evt
-      (marionette-find-element! (page-marionette p) selector)
-      (lambda (res)
-        (make-element
-         (hash-ref res 'value)
-         (page-marionette p)))))))
+      (marionette-find-elements! (page-marionette p) selector)
+      (λ (ids)
+        (for/list ([id (in-list ids)])
+          (make-element id (page-marionette p))))))))
 
-(define/contract (page-query-selector-all! p selector)
-  (-> page? non-empty-string? (listof element?))
-  (sync
-   (handle-evt
-    (marionette-find-elements! (page-marionette p) selector)
-    (lambda (ids)
-      (for/list ([id (in-list ids)])
-        (make-element id (page-marionette p)))))))
-
-(define/contract (page-alert-text p)
-  (-> page? string?)
+(define (page-alert-text p)
   (sync
    (handle-evt
     (marionette-get-alert-text! (page-marionette p))
-    (curryr hash-ref 'value))))
+    res-value)))
 
-(define/contract (page-alert-accept! p)
-  (-> page? void?)
-  (void (sync (marionette-accept-alert! (page-marionette p)))))
+(define (page-alert-accept! p)
+  (with-page p
+    (syncv (marionette-accept-alert! (page-marionette p)))))
 
-(define/contract (page-alert-dismiss! p)
-  (-> page? void?)
-  (void (sync (marionette-dismiss-alert! (page-marionette p)))))
+(define (page-alert-dismiss! p)
+  (with-page p
+    (syncv (marionette-dismiss-alert! (page-marionette p)))))
 
-(define/contract (page-alert-type! p text)
-  (-> page? string? void?)
-  (void (sync (marionette-send-alert-text! (page-marionette p) text))))
+(define (page-alert-type! p text)
+  (syncv (marionette-send-alert-text! (page-marionette p) text)))
 
-(define/contract (call-with-page-screenshot! page p #:full? [full? #t])
-  (->* (page? (-> bytes? any))
-       (#:full? boolean?) any)
-  (sync
-   (handle-evt
-    (marionette-take-screenshot! (page-marionette page) full?)
-    (lambda (res)
-      (p (base64-decode (string->bytes/utf-8 (hash-ref res 'value))))))))
+(define (call-with-page-screenshot! p f #:full? [full? #t])
+  (with-page p
+    (f (sync
+        (handle-evt
+         (marionette-take-screenshot! (page-marionette p) full?)
+         (λ (res)
+           (base64-decode (string->bytes/utf-8 (hash-ref res 'value)))))))))
+
+(define syncv
+  (compose1 void sync))
+
+(define (res-value res)
+  (hash-ref res 'value))
