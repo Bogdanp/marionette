@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require racket/contract
-         racket/function
          racket/match
          racket/string
          "capabilities.rkt"
@@ -10,41 +9,37 @@
          "timeouts.rkt")
 
 (provide
- browser?
- browser-connect!
- browser-disconnect!
-
- browser-timeouts
- set-browser-timeouts!
-
- browser-viewport-size
- set-browser-viewport-size!
-
- make-browser-page!
- browser-capabilities
- browser-pages
- browser-focus!)
+ (contract-out
+  [browser? (-> any/c boolean?)]
+  [browser-connect! (->* ()
+                         (#:host non-empty-string?
+                          #:port (integer-in 1 65535)
+                          #:capabilities capabilities?)
+                         browser?)]
+  [browser-disconnect! (-> browser? void?)]
+  [browser-timeouts (-> browser? timeouts?)]
+  [set-browser-timeouts! (-> browser? timeouts? void?)]
+  [browser-viewport-size (-> browser? (values exact-nonnegative-integer?
+                                              exact-nonnegative-integer?))]
+  [set-browser-viewport-size! (-> browser? exact-nonnegative-integer? exact-nonnegative-integer? void?)]
+  [make-browser-page! (-> browser? page?)]
+  [browser-capabilities (-> browser? capabilities?)]
+  [browser-pages (-> browser? (listof page?))]
+  [browser-focus! (-> browser? page? void?)]))
 
 (struct browser (marionette))
 
-(define/contract (browser-connect! #:host [host "127.0.0.1"]
-                                   #:port [port 2828]
-                                   #:capabilities [capabilities (make-capabilities)])
-  (->* ()
-       (#:host non-empty-string?
-        #:port (integer-in 1 65535)
-        #:capabilities capabilities?)
-       browser?)
+(define (browser-connect! #:host [host "127.0.0.1"]
+                          #:port [port 2828]
+                          #:capabilities [caps (make-capabilities)])
+  (define m (make-marionette host port))
+  (marionette-connect! m caps)
+  (browser m))
 
-  (define marionette (make-marionette host port))
-  (marionette-connect! marionette capabilities)
-  (browser marionette))
-
-(define/contract (browser-disconnect! b)
-  (-> browser? void?)
+(define (browser-disconnect! b)
   (marionette-disconnect! (browser-marionette b)))
 
-(define (call-with-browser-script! b s [p identity])
+(define (call-with-browser-script! b s [p values])
   (sync
    (handle-evt
     (marionette-execute-script! (browser-marionette b) s)
@@ -52,8 +47,7 @@
       [(hash-table ('value value))
        (p value)]))))
 
-(define/contract (browser-timeouts b)
-  (-> browser? timeouts?)
+(define (browser-timeouts b)
   (sync
    (handle-evt
     (marionette-get-timeouts! (browser-marionette b))
@@ -63,8 +57,7 @@
                    ('implicit implicit))
        (timeouts script page-load implicit)]))))
 
-(define/contract (set-browser-timeouts! b timeouts)
-  (-> browser? timeouts? void?)
+(define (set-browser-timeouts! b timeouts)
   (void
    (sync
     (marionette-set-timeouts! (browser-marionette b)
@@ -72,20 +65,18 @@
                               (timeouts-page-load timeouts)
                               (timeouts-implicit timeouts)))))
 
-(define/contract (browser-viewport-size b)
-  (-> browser? (values exact-nonnegative-integer?
-                       exact-nonnegative-integer?))
+(define (browser-viewport-size b)
   (call-with-browser-script! b
     "return [window.innerWidth, window.innerHeight]"
-    (curry apply values)))
+    (λ (size)
+      (apply values size))))
 
-(define/contract (set-browser-viewport-size! b width height)
-  (-> browser? exact-nonnegative-integer? exact-nonnegative-integer? void?)
-
+(define (set-browser-viewport-size! b width height)
   (define-values (dx dy)
     (call-with-browser-script! b
       "return [window.outerWidth - window.innerWidth, window.outerHeight - window.innerHeight]"
-      (curry apply values)))
+      (λ (size)
+        (apply values size))))
 
   (void
    (sync
@@ -93,16 +84,14 @@
                                  (+ width dx)
                                  (+ height dy)))))
 
-(define/contract (make-browser-page! b)
-  (-> browser? page?)
+(define (make-browser-page! b)
   (sync
    (handle-evt
     (marionette-new-window! (browser-marionette b))
     (lambda (res)
       (make-page (hash-ref res 'handle) (browser-marionette b))))))
 
-(define/contract (browser-capabilities b)
-  (-> browser? capabilities?)
+(define (browser-capabilities b)
   (sync
    (handle-evt
     (marionette-get-capabilities! (browser-marionette b))
@@ -110,15 +99,9 @@
       [(hash-table ('capabilities caps))
        (jsexpr->capabilities caps)]))))
 
-(define/contract (browser-pages b)
-  (-> browser? (listof page?))
-  (define ids
-    (sync
-     (marionette-get-window-handles! (browser-marionette b))))
-
-  (for/list ([id (in-list ids)])
+(define (browser-pages b)
+  (for/list ([id (in-list (sync (marionette-get-window-handles! (browser-marionette b))))])
     (make-page id (browser-marionette b))))
 
-(define/contract (browser-focus! b p)
-  (-> browser? page? void?)
+(define (browser-focus! b p)
   (void (sync (marionette-switch-to-window! (browser-marionette b) (page-id p)))))

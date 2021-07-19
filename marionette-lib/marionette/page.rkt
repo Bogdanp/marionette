@@ -23,7 +23,6 @@
   [page? (-> any/c boolean?)]
   [page=? (-> page? page? boolean?)]
   [page-id (-> page? string?)]
-  [page-select! (-> page? void?)]
   [page-close! (-> page? void?)]
   [page-refresh! (-> page? void?)]
   [page-goto! (-> page? (or/c url? string?) void?)]
@@ -73,9 +72,6 @@
 
 (define-syntax-rule (with-page p e0 e ...)
   (call-with-page p (λ () e0 e ...)))
-
-(define (page-select! p)
-  (syncv (marionette-switch-to-window! (page-marionette p) (page-id p))))
 
 (define (page-close! p)
   (with-page p

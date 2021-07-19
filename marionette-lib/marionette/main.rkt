@@ -24,12 +24,23 @@
  exn:fail:marionette:command?
  exn:fail:marionette:command-stacktrace
 
- start-marionette!
+ (contract-out
+  [start-marionette! (->* ()
+                          (#:command absolute-path?
+                           #:profile (or/c #f absolute-path?)
+                           #:port (or/c #f (integer-in 1 65535))
+                           #:safe-mode? boolean?
+                           #:headless? boolean?
+                           #:timeout exact-nonnegative-integer?)
+                          (-> void?))]
+  [call-with-browser! (->* ((-> browser? any))
+                           (#:host non-empty-string?
+                            #:port (integer-in 1 65535)
+                            #:capabilities capabilities?)
+                           any)]
+  [call-with-page! (-> browser? (-> page? any) any)])
+
  call-with-marionette!
-
- call-with-browser!
- call-with-page!
-
  call-with-marionette/browser!
  call-with-marionette/browser/page!)
 
@@ -41,32 +52,18 @@
                   #:when (file-exists? path))
         path)))
 
-(define/contract (start-marionette! #:command [command FIREFOX-BIN-PATH]
-                                    #:profile [profile #f]
-                                    #:port [port #f]
-                                    #:safe-mode? [safe-mode? #t]
-                                    #:headless? [headless? #t]
-                                    #:timeout [timeout 5])
-  (->* ()
-       (#:command absolute-path?
-        #:profile (or/c #f absolute-path?)
-        #:port (or/c #f (integer-in 1 65535))
-        #:safe-mode? boolean?
-        #:headless? boolean?
-        #:timeout exact-nonnegative-integer?)
-       (-> void?))
-
+(define (start-marionette! #:command [command FIREFOX-BIN-PATH]
+                           #:profile [profile #f]
+                           #:port [port #f]
+                           #:safe-mode? [safe-mode? #t]
+                           #:headless? [headless? #t]
+                           #:timeout [timeout 5])
   (unless command
     (raise-user-error 'start-marionette! "could not determine path to Firefox executable, please provide one via #:command"))
 
-  (define deadline
-    (+ (current-seconds) timeout))
-
-  (define delete-profile?
-    (not profile))
-
-  (define profile-path
-    (or profile (make-temporary-file "marionette~a" 'directory)))
+  (define deadline (+ (current-seconds) timeout))
+  (define delete-profile? (not profile))
+  (define profile-path (or profile (make-temporary-file "marionette~a" 'directory)))
 
   (when port
     (unless (directory-exists? profile-path)
@@ -122,16 +119,10 @@
        (lambda ()
          (stop-marionette!))))))
 
-(define/contract (call-with-browser! p
-                   #:host [host "127.0.0.1"]
-                   #:port [port 2828]
-                   #:capabilities [capabilities (make-capabilities)])
-  (->* ((-> browser? any))
-       (#:host non-empty-string?
-        #:port (integer-in 1 65535)
-        #:capabilities capabilities?)
-       any)
-
+(define (call-with-browser! p
+          #:host [host "127.0.0.1"]
+          #:port [port 2828]
+          #:capabilities [capabilities (make-capabilities)])
   (define b #f)
   (dynamic-wind
     (lambda ()
@@ -144,8 +135,7 @@
     (lambda ()
       (browser-disconnect! b))))
 
-(define/contract (call-with-page! b p)
-  (-> browser? (-> page? any) any)
+(define (call-with-page! b p)
   (define page #f)
   (dynamic-wind
     (lambda ()
