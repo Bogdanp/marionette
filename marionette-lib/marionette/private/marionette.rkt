@@ -197,6 +197,11 @@
                      (log-marionette-debug "connected to ~a:~a" host port)
                      (define preamble (read-data in))
                      (cond
+                       [(eof-object? preamble)
+                        (define err (oops 'connect "the other end hung up"))
+                        (sync/timeout 0 (channel-put-evt res-ch err))
+                        (loop #f #f (remq cmd cmds) waiters next-id)]
+
                        [(and (equal? (hash-ref preamble 'applicationType #f) "gecko")
                              (equal? (hash-ref preamble 'marionetteProtocol #f) 3))
                         (sync/timeout 0 (channel-put-evt res-ch (void)))
