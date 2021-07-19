@@ -5,8 +5,8 @@
          racket/function
          racket/match
          racket/string
+         "private/json.rkt"
          "private/marionette.rkt"
-         "private/util.rkt"
          "rect.rkt")
 
 (provide

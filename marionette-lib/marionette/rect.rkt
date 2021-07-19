@@ -4,8 +4,8 @@
 
 (provide
  (contract-out
-  [struct rect ([x exact-integer?]
-                [y exact-integer?]
+  [struct rect ([x real?]
+                [y real?]
                 [w real?]
                 [h real?])]))
 

@@ -469,10 +469,10 @@ computerscienceminor/")
 @subsection[#:tag "reference/rect"]{Rect}
 @defmodule[marionette/rect]
 
-@defstruct[rect ([x exact-integer?]
-                 [y exact-integer?]
-                 [w natural?]
-                 [h natural?])]{
+@defstruct[rect ([x real?]
+                 [y real?]
+                 [w real?]
+                 [h real?])]{
 
   This struct is used to represent an element's bounding client rect.
 }

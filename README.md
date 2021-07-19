@@ -32,7 +32,7 @@ Run this script:
             (define filename (make-temporary-file "~a.png"))
             (with-output-to-file filename
               #:exists 'truncate/replace
-              (lambda _
+              (lambda ()
                 (write-bytes data)))
 
             (system* (find-executable-path "open") filename)))))))

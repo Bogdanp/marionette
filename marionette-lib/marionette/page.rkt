@@ -8,8 +8,8 @@
          racket/match
          racket/string
          "element.rkt"
-         "private/marionette.rkt"
-         "private/util.rkt")
+         "private/json.rkt"
+         "private/marionette.rkt")
 
 (provide
  exn:fail:marionette:page?
@@ -237,24 +237,23 @@ SCRIPT
        (or/c false/c element?))
 
   (define chan (make-channel))
-  (define waiter
-    (thread
-     (lambda _
-       (let loop ()
-         (define handle
-           (with-handlers ([exn:fail:marionette?
-                            (lambda (e)
-                              (cond
-                                [(or (string-contains? (exn-message e) "unloaded")
-                                     (string-contains? (exn-message e) "async script execution failed")
-                                     (string-contains? (exn-message e) "async script execution aborted")
-                                     (string-contains? (exn-message e) "context has been discarded"))
-                                 (loop)]
+  (thread
+   (lambda ()
+     (let loop ()
+       (define handle
+         (with-handlers ([exn:fail:marionette?
+                          (lambda (e)
+                            (cond
+                              [(or (string-contains? (exn-message e) "unloaded")
+                                   (string-contains? (exn-message e) "async script execution failed")
+                                   (string-contains? (exn-message e) "async script execution aborted")
+                                   (string-contains? (exn-message e) "context has been discarded"))
+                               (loop)]
 
-                                [else (raise e)]))])
-             (page-execute-async! p wait-for-element-script selector (* timeout 1000) visible?)))
+                              [else (raise e)]))])
+           (page-execute-async! p wait-for-element-script selector (* timeout 1000) visible?)))
 
-         (channel-put chan (and handle (page-query-selector! p selector)))))))
+       (channel-put chan (and handle (page-query-selector! p selector))))))
 
   (sync/timeout timeout chan))
 

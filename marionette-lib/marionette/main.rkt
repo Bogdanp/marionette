@@ -200,7 +200,7 @@
         void)
        (handle-evt
         evt
-        (lambda _
+        (lambda (_)
           (define evt* (filesystem-change-evt path))
           (unless (file-exists? (build-path path "prefs.js"))
             (loop evt*))))))

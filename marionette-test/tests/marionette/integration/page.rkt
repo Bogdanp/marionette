@@ -73,7 +73,7 @@ SCRIPT
            (lambda (p)
              (check-exn
               exn:fail:marionette:page:script?
-              (lambda _
+              (lambda ()
                 (page-execute-async! p #<<SCRIPT
 throw new Error("an error!");
 SCRIPT
@@ -162,7 +162,7 @@ SCRIPT
             (test-case "cannot retrieve text if there is no current alert"
               (check-exn
                exn:fail:marionette?
-               (lambda _
+               (lambda ()
                  (page-alert-text p))))
 
             (test-case "can accept alerts"
