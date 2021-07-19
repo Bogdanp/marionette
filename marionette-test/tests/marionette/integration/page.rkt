@@ -20,9 +20,9 @@
       (call-with-browser!
        (lambda (b)
          (define p (make-browser-page! b))
-         (check-not-false (member p (browser-pages b)))
+         (check-not-false (member p (browser-pages b) page=?))
          (page-close! p)
-         (check-false (member p (browser-pages b)))))))
+         (check-false (member p (browser-pages b) page=?))))))
 
    (test-suite
     "page-refresh!"

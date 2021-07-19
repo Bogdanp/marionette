@@ -8,7 +8,6 @@
          racket/system
          "browser.rkt"
          "capabilities.rkt"
-         "element.rkt"
          "page.rkt"
          "private/marionette.rkt"
          "rect.rkt"
@@ -17,7 +16,6 @@
 (provide
  (all-from-out "browser.rkt"
                "capabilities.rkt"
-               "element.rkt"
                "page.rkt"
                "rect.rkt"
                "timeouts.rkt")

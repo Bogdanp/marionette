@@ -6,9 +6,12 @@
          racket/contract
          racket/match
          racket/string
-         "element.rkt"
          "private/json.rkt"
-         "private/marionette.rkt")
+         "private/marionette.rkt"
+         "rect.rkt")
+
+
+;; page ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide
  exn:fail:marionette:page?
@@ -251,14 +254,24 @@ SCRIPT
                                    (string-contains? (exn-message e) "context has been discarded"))
                                (loop)]
 
-                              [else
-                               (raise e)]))])
+                              [else e]))])
            (with-page p
              (page-execute-async! p wait-for-element-script selector (* timeout 1000) visible?))))
 
-       (channel-put res-ch (and handle (page-query-selector! p selector))))))
+       (if (exn:fail? handle)
+           (channel-put res-ch handle)
+           (channel-put
+            res-ch
+            (and handle (with-page p (page-query-selector! p selector))))))))
 
-  (sync/timeout timeout res-ch))
+  (sync/timeout
+   timeout
+   (handle-evt
+    res-ch
+    (λ (res)
+      (begin0 res
+        (when (exn:fail? res)
+          (raise res)))))))
 
 (define (page-query-selector! p selector)
   (with-handlers ([exn:fail:marionette:command?
@@ -270,10 +283,8 @@ SCRIPT
       (sync
        (handle-evt
         (marionette-find-element! (page-marionette p) selector)
-        (λ (res)
-          (make-element
-           (hash-ref res 'value)
-           (page-marionette p))))))))
+        (λ (r)
+          (element (page-marionette p) p (res-value r))))))))
 
 (define (page-query-selector-all! p selector)
   (with-page p
@@ -282,7 +293,7 @@ SCRIPT
       (marionette-find-elements! (page-marionette p) selector)
       (λ (ids)
         (for/list ([id (in-list ids)])
-          (make-element id (page-marionette p))))))))
+          (element (page-marionette p) p id)))))))
 
 (define (page-alert-text p)
   (sync
@@ -309,8 +320,156 @@ SCRIPT
          (λ (res)
            (base64-decode (string->bytes/utf-8 (hash-ref res 'value)))))))))
 
+
+;; element ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(provide
+ (contract-out
+  [element? (-> any/c boolean?)]
+  [element=? (-> element? element? boolean?)]
+  [element-click! (-> element? void?)]
+  [element-clear! (-> element? void?)]
+  [element-type! (-> element? string? void?)]
+  [element-query-selector! (-> element? string? (or/c #f element?))]
+  [element-query-selector-all! (-> element? string? (listof element?))]
+  [element-enabled? (-> element? boolean?)]
+  [element-selected? (-> element? boolean?)]
+  [element-visible? (-> element? boolean?)]
+  [element-handle (-> element? any/c)]
+  [element-tag (-> element? string?)]
+  [element-text (-> element? string?)]
+  [element-rect (-> element? rect?)]
+  [element-attribute (-> element? string? (or/c #f string?))]
+  [element-property (-> element? string? (or/c #f string?))]
+  [call-with-element-screenshot! (-> element? (-> bytes? any) any)]))
+
+(define (element=? element-1 element-2)
+  (and (eq? (element-page element-1)
+            (element-page element-2))
+       (equal? (element-handle element-1)
+               (element-handle element-2))))
+
+(struct element (marionette page handle))
+
+(define (element-id e)
+  (for/first ([(_ v) (in-hash (element-handle e))])
+    v))
+
+(define (element-click! e)
+  (with-page (element-page e)
+    (syncv (marionette-element-click! (element-marionette e) (element-id e)))))
+
+(define (element-clear! e)
+  (with-page (element-page e)
+    (syncv (marionette-element-clear! (element-marionette e) (element-id e)))))
+
+(define (element-type! e text)
+  (with-page (element-page e)
+    (syncv (marionette-element-send-keys! (element-marionette e) (element-id e) text))))
+
+(define (element-query-selector! e selector)
+  (with-handlers ([exn:fail:marionette:command?
+                   (lambda (ex)
+                     (cond
+                       [(regexp-match? #rx"Unable to locate element" (exn-message ex)) #f]
+                       [else (raise ex)]))])
+    (with-page (element-page e)
+      (sync
+       (handle-evt
+        (marionette-find-element! (element-marionette e) selector (element-id e))
+        (lambda (r)
+          (element
+           (element-marionette e)
+           (element-page e)
+           (res-value r))))))))
+
+(define (element-query-selector-all! e selector)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-find-elements! (element-marionette e) selector (element-id e))
+      (lambda (ids)
+        (for/list ([id (in-list ids)])
+          (element id (element-marionette e))))))))
+
+(define (element-enabled? e)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-is-element-enabled! (element-marionette e) (element-id e))
+      res-value))))
+
+(define (element-selected? e)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-is-element-selected! (element-marionette e) (element-id e))
+      res-value))))
+
+(define (element-visible? e)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-is-element-displayed! (element-marionette e) (element-id e))
+      res-value))))
+
+(define (element-tag e)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-get-element-tag-name! (element-marionette e) (element-id e))
+      res-value))))
+
+(define (element-text e)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-get-element-text! (element-marionette e) (element-id e))
+      res-value))))
+
+(define (element-rect e)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-get-element-rect! (element-marionette e) (element-id e))
+      (match-lambda
+        [(hash-table ('x x)
+                     ('y y)
+                     ('width w)
+                     ('height h))
+         (rect x y w h)])))))
+
+(define (element-attribute e name)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-get-element-attribute! (element-marionette e) (element-id e) name)
+      (match-lambda
+        [(hash-table ('value (js-null))) #f   ]
+        [(hash-table ('value value    )) value])))))
+
+(define (element-property e name)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-get-element-property! (element-marionette e) (element-id e) name)
+      (match-lambda
+        [(hash-table ('value (js-null))) #f]
+        [(hash-table ('value value    )) value])))))
+
+(define (call-with-element-screenshot! e p)
+  (with-page (element-page e)
+    (sync
+     (handle-evt
+      (marionette-take-screenshot! (element-marionette e) #f (element-id e))
+      (lambda (res)
+        (p (base64-decode (string->bytes/utf-8 (hash-ref res 'value)))))))))
+
+
+;; common ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define syncv
   (compose1 void sync))
 
-(define (res-value res)
-  (hash-ref res 'value))
+(define (res-value r)
+  (hash-ref r 'value))

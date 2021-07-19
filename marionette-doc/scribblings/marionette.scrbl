@@ -27,11 +27,6 @@ To use this library, you need to have a running Firefox instance with
 the marionette protocol enabled.  To do this, all you have to do is
 run the firefox binary with the @literal{-marionette} flag.
 
-@section[#:tag "limitations"]{Limitations}
-
-The protocol doesn't (seem to) support operating on more than one page
-concurrently within one browser session.  To get around this, simply
-initiate multiple browser sessions via @racket[call-with-browser!].
 
 @section[#:tag "examples"]{Examples}
 
@@ -198,7 +193,6 @@ computerscienceminor/")
 }
 
 @subsection[#:tag "reference/browser"]{Browser}
-@defmodule[marionette/browser]
 
 @defproc[(browser? [b any/c]) boolean?]{
   Returns @racket[#t] when @racket[b] is a browser.
@@ -250,7 +244,6 @@ computerscienceminor/")
 
 
 @subsection[#:tag "reference/page"]{Page}
-@defmodule[marionette/page]
 
 @defproc[(page? [p any/c]) boolean?]{
   Returns @racket[#t] when @racket[p] is a page.
@@ -258,9 +251,12 @@ computerscienceminor/")
 
 @defproc[(page=? [p1 page?]
                  [p2 page?]) boolean?]{
-  Returns @racket[#t] when @racket[p1] and @racket[p2] represent the
-  same page (i.e. they have the same id but are not necessarily the
-  same object in memory).
+  Returns @racket[#t] when @racket[p1] and @racket[p2] have the same
+  handle and belong to the same marionette.
+}
+
+@defproc[(page-select! [p page?]) void?]{
+  Tells the browser to switch to @racket[p].
 }
 
 @defproc[(page-close! [p page?]) void?]{
@@ -348,7 +344,6 @@ computerscienceminor/")
 
 
 @subsection[#:tag "reference/element"]{Element}
-@defmodule[marionette/element]
 
 @defproc[(element? [e any/c]) boolean?]{
   Returns @racket[#t] when @racket[e] is a element.
@@ -356,9 +351,8 @@ computerscienceminor/")
 
 @defproc[(element=? [e1 element?]
                     [e2 element?]) boolean?]{
-  Returns @racket[#t] when @racket[e1] and @racket[e2] represent the
-  same element (i.e. they have the same handle but are not necessarily
-  the same object in memory).
+  Returns @racket[#t] when @racket[e1] and @racket[e2] have the same
+  handle and belong to the same page.
 }
 
 @defproc[(element-click! [e element?]) void?]{
@@ -392,8 +386,7 @@ computerscienceminor/")
 }
 
 @deftogether[
-  (@defproc[(element-handle [e element?]) handle/c]
-   @defproc[(element-tag [e element?]) string?]
+  (@defproc[(element-tag [e element?]) string?]
    @defproc[(element-text [e element?]) string?]
    @defproc[(element-rect [e element?]) rect?])]{
   Access various @racket[e] fields.
@@ -416,7 +409,6 @@ computerscienceminor/")
 
 
 @subsection[#:tag "reference/capabilities"]{Capabilities}
-@defmodule[marionette/capabilities]
 
 @deftogether[
   (@defthing[page-load-strategy/c (or/c "none" "eager" "normal")]
@@ -449,7 +441,6 @@ computerscienceminor/")
 
 
 @subsection[#:tag "reference/timeouts"]{Timeouts}
-@defmodule[marionette/timeouts]
 
 @defstruct[timeouts ([script exact-nonnegative-integer?]
                      [page-load exact-nonnegative-integer?]
@@ -467,7 +458,6 @@ computerscienceminor/")
 
 
 @subsection[#:tag "reference/rect"]{Rect}
-@defmodule[marionette/rect]
 
 @defstruct[rect ([x real?]
                  [y real?]
