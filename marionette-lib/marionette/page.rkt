@@ -81,13 +81,11 @@
   (with-page p
     (syncv (marionette-refresh! (page-marionette p)))))
 
-(define (page-goto! p url)
+(define (page-goto! p u)
   (with-page p
     (syncv (marionette-navigate!
             (page-marionette p)
-            (cond
-              [(url? url) (url->string url)]
-              [else url])))))
+            (if (url? u) (url->string u) u)))))
 
 (define (page-go-back! p)
   (with-page p
@@ -313,8 +311,7 @@ SCRIPT
     (f (sync
         (handle-evt
          (marionette-take-screenshot! (page-marionette p) full?)
-         (λ (res)
-           (base64-decode (string->bytes/utf-8 (hash-ref res 'value)))))))))
+         res-value/decode)))))
 
 
 ;; element ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -469,3 +466,6 @@ SCRIPT
 
 (define (res-value r)
   (hash-ref r 'value))
+
+(define res-value/decode
+  (compose1 base64-decode string->bytes/utf-8 res-value))
