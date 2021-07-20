@@ -324,6 +324,16 @@ separately.
   that match the given CSS selector.
 }
 
+@deftogether[(
+  @defthing[cookie/c contract?]
+  @defproc[(page-cookies [p page?]) (listof cookie/c)]
+  @defproc[(page-add-cookie! [p page?] [c cookie/c]) void?]
+  @defproc[(page-delete-all-cookies! [p page?]) void?]
+  @defproc[(page-delete-cookie! [p page?] [name string?]) void?]
+)]{
+
+}
+
 @deftogether[
   (@defproc[(page-alert-text [p page?]) string?]
    @defproc[(page-alert-accept! [p page?]) void?]

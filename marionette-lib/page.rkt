@@ -16,6 +16,8 @@
 ;; page ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide
+ cookie/c
+
  exn:fail:marionette:page?
  exn:fail:marionette:page:script?
  exn:fail:marionette:page:script-cause
@@ -44,6 +46,10 @@
   [page-url (-> page? url?)]
   [page-content (-> page? string?)]
   [set-page-content! (-> page? string? void?)]
+  [page-cookies (-> page? (listof cookie/c))]
+  [page-add-cookie! (-> page? cookie/c void?)]
+  [page-delete-all-cookies! (-> page? void?)]
+  [page-delete-cookie! (-> page? string? void?)]
   [page-alert-text (-> page? string?)]
   [page-alert-accept! (-> page? void?)]
   [page-alert-dismiss! (-> page? void?)]
@@ -171,6 +177,24 @@
 
 (define (page-loaded? p)
   (and (member (page-readystate p) '("complete")) #t))
+
+(define cookie/c jsexpr?)
+
+(define (page-cookies p)
+  (with-page p
+    (sync (marionette-get-cookies! (page-marionette p)))))
+
+(define (page-add-cookie! p c)
+  (with-page p
+    (syncv (marionette-add-cookie! (page-marionette p) c))))
+
+(define (page-delete-all-cookies! p)
+  (with-page p
+    (syncv (marionette-delete-all-cookies! (page-marionette p)))))
+
+(define (page-delete-cookie! p name)
+  (with-page p
+    (syncv (marionette-delete-cookie! (page-marionette p) name))))
 
 (define wait-for-element-script
   (template "support/wait-for-element.js"))

@@ -52,9 +52,4 @@ It's advisable that you use a separate profile as well:
 You can create new profiles by visiting `about:profiles` in the
 browser.
 
-## Todos
-
-* [ ] Cookies
-* [ ] Frames
-
 [Marionette Protocol]: https://firefox-source-docs.mozilla.org/testing/marionette/marionette/Protocol.html
