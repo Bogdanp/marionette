@@ -66,10 +66,10 @@
 (define (make-page id marionette)
   (page id marionette))
 
-(define (call-with-page p f)
+(define (call-with-page p proc)
   (dynamic-wind
     (λ () (sync/enable-break (marionette-switch-to-window! (page-marionette p) (page-id p))))
-    (λ () (f))
+    (λ () (proc))
     (λ () (void))))
 
 (define-syntax-rule (with-page p e0 e ...)
@@ -243,19 +243,21 @@
 (define (page-alert-type! p text)
   (syncv (marionette-send-alert-text! (page-marionette p) text)))
 
-(define (call-with-page-pdf! p f)
+(define (call-with-page-pdf! p proc)
   (with-page p
-    (f (sync
-        (handle-evt
-         (marionette-print! (page-marionette p))
-         res-value/decode)))))
+    (proc
+     (sync
+      (handle-evt
+       (marionette-print! (page-marionette p))
+       res-value/decode)))))
 
-(define (call-with-page-screenshot! p f #:full? [full? #t])
+(define (call-with-page-screenshot! p proc #:full? [full? #t])
   (with-page p
-    (f (sync
-        (handle-evt
-         (marionette-take-screenshot! (page-marionette p) full?)
-         res-value/decode)))))
+    (proc
+     (sync
+      (handle-evt
+       (marionette-take-screenshot! (page-marionette p) full?)
+       res-value/decode)))))
 
 
 ;; element ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -394,13 +396,13 @@
         [(hash-table ('value (js-null))) #f]
         [(hash-table ('value value    )) value])))))
 
-(define (call-with-element-screenshot! e p)
+(define (call-with-element-screenshot! e proc)
   (with-page (element-page e)
-    (sync
-     (handle-evt
-      (marionette-take-screenshot! (element-marionette e) #f (element-id e))
-      (lambda (res)
-        (p (base64-decode (string->bytes/utf-8 (hash-ref res 'value)))))))))
+    (proc
+     (sync
+      (handle-evt
+       (marionette-take-screenshot! (element-marionette e) #f (element-id e))
+       res-value/decode)))))
 
 
 ;; common ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
