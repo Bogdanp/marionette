@@ -6,6 +6,7 @@
          racket/contract
          racket/match
          racket/string
+         "private/browser.rkt"
          "private/json.rkt"
          "private/marionette.rkt"
          "private/template.rkt"
@@ -20,7 +21,7 @@
  exn:fail:marionette:page:script-cause
 
  (contract-out
-  [make-page (-> string? marionette? page?)]
+  [make-page (-> browser? string? page?)]
   [page? (-> any/c boolean?)]
   [page=? (-> page? page? boolean?)]
   [page-id (-> page? string?)]
@@ -55,20 +56,28 @@
 (struct exn:fail:marionette:page exn:fail:marionette ())
 (struct exn:fail:marionette:page:script exn:fail:marionette:page (cause))
 
+(struct page (browser id))
+
+(define (make-page b id)
+  (page b id))
+
 (define (page=? page-1 page-2)
-  (and (eq? (page-marionette page-1)
-            (page-marionette page-2))
+  (and (eq? (page-browser page-1)
+            (page-browser page-2))
        (equal? (page-id page-1)
                (page-id page-2))))
 
-(struct page (id marionette))
+(define (page-marionette p)
+  (browser-marionette (page-browser p)))
 
-(define (make-page id marionette)
-  (page id marionette))
+(define (page-focused? p)
+  (browser-current-page=? (page-browser p) p))
 
 (define (call-with-page p proc)
   (dynamic-wind
-    (λ () (sync/enable-break (marionette-switch-to-window! (page-marionette p) (page-id p))))
+    (λ () (unless (page-focused? p)
+            (sync/enable-break (marionette-switch-to-window! (page-marionette p) (page-id p)))
+            (set-browser-current-page! (page-browser p) p)))
     (λ () (proc))
     (λ () (void))))
 
@@ -215,7 +224,7 @@
        (handle-evt
         (marionette-find-element! (page-marionette p) selector)
         (λ (r)
-          (element (page-marionette p) p (res-value r))))))))
+          (element p (res-value r))))))))
 
 (define (page-query-selector-all! p selector)
   (with-page p
@@ -224,7 +233,7 @@
       (marionette-find-elements! (page-marionette p) selector)
       (λ (ids)
         (for/list ([id (in-list ids)])
-          (element (page-marionette p) p id)))))))
+          (element p id)))))))
 
 (define (page-alert-text p)
   (sync
@@ -282,13 +291,16 @@
   [element-property (-> element? string? (or/c #f string?))]
   [call-with-element-screenshot! (-> element? (-> bytes? any) any)]))
 
+(struct element (page handle))
+
 (define (element=? element-1 element-2)
   (and (eq? (element-page element-1)
             (element-page element-2))
        (equal? (element-handle element-1)
                (element-handle element-2))))
 
-(struct element (marionette page handle))
+(define (element-marionette e)
+  (page-marionette (element-page e)))
 
 (define (element-id e)
   (for/first ([(_ v) (in-hash (element-handle e))])
@@ -318,18 +330,18 @@
         (marionette-find-element! (element-marionette e) selector (element-id e))
         (lambda (r)
           (element
-           (element-marionette e)
            (element-page e)
            (res-value r))))))))
 
 (define (element-query-selector-all! e selector)
-  (with-page (element-page e)
+  (define p (element-page e))
+  (with-page p
     (sync
      (handle-evt
       (marionette-find-elements! (element-marionette e) selector (element-id e))
       (lambda (ids)
         (for/list ([id (in-list ids)])
-          (element id (element-marionette e))))))))
+          (element p id)))))))
 
 (define (element-enabled? e)
   (with-page (element-page e)

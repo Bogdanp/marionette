@@ -18,11 +18,11 @@
 
     (test-case "can close pages"
       (call-with-browser!
-       (lambda (b)
-         (define p (make-browser-page! b))
-         (check-not-false (member p (browser-pages b) page=?))
-         (page-close! p)
-         (check-false (member p (browser-pages b) page=?))))))
+        (lambda (b)
+          (define p (make-browser-page! b))
+          (check-not-false (member p (browser-pages b) page=?))
+          (page-close! p)
+          (check-false (member p (browser-pages b) page=?))))))
 
    (test-suite
     "page-refresh!"
@@ -41,10 +41,10 @@
       (call-with-browser!
         (lambda (b)
           (call-with-page! b
-           (lambda (p)
-             (page-goto! p "https://example.com")
-             (check-equal? (page-title p) "Example Domain")
-             (check-equal? (page-url p) (string->url "https://example.com/"))))))))
+            (lambda (p)
+              (page-goto! p "https://example.com")
+              (check-equal? (page-title p) "Example Domain")
+              (check-equal? (page-url p) (string->url "https://example.com/"))))))))
 
    (test-suite
     "page-execute-async!"
@@ -53,31 +53,31 @@
       (call-with-browser!
         (lambda (b)
           (call-with-page! b
-           (lambda (p)
-             (define val
-               (page-execute-async! p #<<SCRIPT
+            (lambda (p)
+              (define val
+                (page-execute-async! p #<<SCRIPT
 return new Promise((resolve) => {
   window.setTimeout(function() {
     resolve(42);
   }, 1000);
 });
 SCRIPT
-                                    ))
+                                     ))
 
-             (check-equal? val 42))))))
+              (check-equal? val 42))))))
 
     (test-case "can capture script execution errors"
       (call-with-browser!
         (lambda (b)
           (call-with-page! b
-           (lambda (p)
-             (check-exn
-              exn:fail:marionette:page:script?
-              (lambda ()
-                (page-execute-async! p #<<SCRIPT
+            (lambda (p)
+              (check-exn
+               exn:fail:marionette:page:script?
+               (lambda ()
+                 (page-execute-async! p #<<SCRIPT
 throw new Error("an error!");
 SCRIPT
-                                     )))))))))
+                                      )))))))))
 
    (test-suite
     "page-wait-for!"
@@ -146,10 +146,10 @@ SCRIPT
       (call-with-browser!
         (lambda (b)
           (call-with-page! b
-           (lambda (p)
-             (define c "<h1>Hello!</h1>")
-             (set-page-content! p c)
-             (check-true (string-contains? (page-content p) c))))))))
+            (lambda (p)
+              (define c "<h1>Hello!</h1>")
+              (set-page-content! p c)
+              (check-true (string-contains? (page-content p) c))))))))
 
    (test-suite
     "page-alert-{text,accept!,dismiss!,type!}"
@@ -189,7 +189,22 @@ SCRIPT
               (page-goto! p "https://example.com")
               (call-with-page-screenshot! p
                 (lambda (data)
-                  (check-not-false data)))))))))))
+                  (check-not-false data)))))))))
+
+   (test-suite
+    "multiple pages"
+
+    (test-case "can handle switching between multiple pages"
+      (call-with-browser!
+        (lambda (b)
+          (define p1 (make-browser-page! b))
+          (define p2 (make-browser-page! b))
+          (set-page-content! p1 "<h1>Page 1")
+          (define e1 (page-query-selector! p1 "h1"))
+          (set-page-content! p2 "<h1>Page 2")
+          (define e2 (page-query-selector! p2 "h1"))
+          (check-equal? (element-text e2) "Page 2")
+          (check-equal? (element-text e1) "Page 1")))))))
 
 (module+ test
   (run-integration-tests page-tests))

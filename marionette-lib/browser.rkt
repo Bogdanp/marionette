@@ -5,6 +5,7 @@
          racket/string
          "capabilities.rkt"
          "page.rkt"
+         "private/browser.rkt"
          "private/marionette.rkt"
          "timeouts.rkt")
 
@@ -27,14 +28,12 @@
   [browser-pages (-> browser? (listof page?))]
   [browser-focus! (-> browser? page? void?)]))
 
-(struct browser (marionette))
-
 (define (browser-connect! #:host [host "127.0.0.1"]
                           #:port [port 2828]
                           #:capabilities [caps (make-capabilities)])
   (define m (make-marionette host port))
   (marionette-connect! m caps)
-  (browser m))
+  (browser m #f))
 
 (define (browser-disconnect! b)
   (marionette-disconnect! (browser-marionette b)))
@@ -89,7 +88,9 @@
    (handle-evt
     (marionette-new-window! (browser-marionette b))
     (lambda (res)
-      (make-page (hash-ref res 'handle) (browser-marionette b))))))
+      (define p (make-page b (hash-ref res 'handle)))
+      (begin0 p
+        (browser-focus! b p))))))
 
 (define (browser-capabilities b)
   (sync
@@ -101,7 +102,8 @@
 
 (define (browser-pages b)
   (for/list ([id (in-list (sync (marionette-get-window-handles! (browser-marionette b))))])
-    (make-page id (browser-marionette b))))
+    (make-page b id)))
 
 (define (browser-focus! b p)
-  (void (sync (marionette-switch-to-window! (browser-marionette b) (page-id p)))))
+  (void (sync (marionette-switch-to-window! (browser-marionette b) (page-id p))))
+  (set-browser-current-page! b p))

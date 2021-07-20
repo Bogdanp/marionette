@@ -2,7 +2,6 @@
 
 (require marionette
          net/url
-         racket/string
          rackunit
          "common.rkt")
 
@@ -59,6 +58,27 @@
               (set-page-content! p "<h1>An anchor: <a>example")
               (define e (page-query-selector! p "h1"))
               (check-not-false (element-query-selector! e "a"))))))))
+
+   (test-suite
+    "element-query-selector-all!"
+
+    (test-case "can fail to retrieve any elements"
+      (call-with-browser!
+        (lambda (b)
+          (call-with-page! b
+            (lambda (p)
+              (set-page-content! p "<h1>Hi!")
+              (define e (page-query-selector! p "h1"))
+              (check-equal? (element-query-selector-all! e ".idontexist") null))))))
+
+    (test-case "can retrieve elements' children"
+      (call-with-browser!
+        (lambda (b)
+          (call-with-page! b
+            (lambda (p)
+              (set-page-content! p "<h1>An anchor: <a>example")
+              (define e (page-query-selector! p "h1"))
+              (check-equal? (length (element-query-selector-all! e "a")) 1)))))))
 
    (test-suite
     "element-enabled?"
@@ -149,17 +169,17 @@
               (define e (page-query-selector! p "a"))
               (check-false (element-attribute e "href")))))))
 
-   (test-suite
-    "element-text"
+    (test-suite
+     "element-text"
 
-    (test-case "can retrieve an element's inner text"
-      (call-with-browser!
-        (lambda (b)
-          (call-with-page! b
-            (lambda (p)
-              (set-page-content! p "<h1>Hello")
-              (define e (page-query-selector! p "h1"))
-              (check-equal? (element-text e) "Hello")))))))
+     (test-case "can retrieve an element's inner text"
+       (call-with-browser!
+         (lambda (b)
+           (call-with-page! b
+             (lambda (p)
+               (set-page-content! p "<h1>Hello")
+               (define e (page-query-selector! p "h1"))
+               (check-equal? (element-text e) "Hello")))))))
 
     (test-case "can retrieve an existing attribute"
       (call-with-browser!
