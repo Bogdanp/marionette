@@ -14,6 +14,7 @@
 
 @title{Marionette}
 @author[(author+email "Bogdan Popa" "bogdan@defn.io")]
+@defmodule[marionette]
 
 @section[#:tag "intro"]{Introduction}
 
@@ -134,7 +135,6 @@ computerscienceminor/")
 }|
 
 @section[#:tag "reference"]{Reference}
-@defmodule[marionette]
 
 @deftogether[
   (@defproc[(start-marionette! [#:command command absolute-path? "/usr/local/bin/firefox"]
@@ -194,19 +194,25 @@ computerscienceminor/")
 
 @subsection[#:tag "reference/browser"]{Browser}
 
+@deftech{Browsers} represent a connection to a marionette-driven
+instance of Firefox.  Browsers are not thread-safe, nor is it safe to
+interleave commands against the same marionette server.  If you need
+concurrency, then create multiple marionettes and control them
+separately.
+
 @defproc[(browser? [b any/c]) boolean?]{
-  Returns @racket[#t] when @racket[b] is a browser.
+  Returns @racket[#t] when @racket[b] is a @tech{browser}.
 }
 
 @defproc[(browser-connect! [#:host host non-empty-string? "127.0.0.1"]
                            [#:port port (integer-in 1 65535) 2828]
                            [#:capabilities capabilities capabilities? (make-capabilities)]) browser?]{
   Connects to the marionette server at @racket[host] and @racket[port]
-  and returns a @racket[browser?] session.
+  and returns a @tech{browser} session.
 }
 
 @defproc[(browser-disconnect! [b browser?]) void?]{
-  Disconnects @racket[b] from its server.
+  Disconnects @racket[b] from its marionette.
 }
 
 @deftogether[
@@ -283,7 +289,7 @@ computerscienceminor/")
 @deftogether[
   (@defproc[(page-interactive? [p page?]) boolean?]
    @defproc[(page-loaded? [p page?]) boolean?])]{
-  Ascertain the current "ready state" of @racket[p].
+  Ascertains the current "ready state" of @racket[p].
 }
 
 @deftogether[
@@ -303,10 +309,10 @@ computerscienceminor/")
                          [selector non-empty-string?]
                          [#:timeout timeout (and/c real? (not/c negative?)) 30]
                          [#:visible? visible? boolean? #t]) (or/c false/c element?)]{
-  Waits for an element matching the given CSS @racket[selector] to appear on
-  @racket[p] or @racket[timeout] milliseconds to pass.  If
-  @racket[visible?] is @racket[#t], then the element must be visible
-  on the page for it to match.
+  Waits for an element matching the given CSS @racket[selector] to
+  appear on @racket[p] or @racket[timeout] milliseconds to pass. If
+  @racket[visible?] is @racket[#t], then the element must be visible on
+  the page for it to match.
 }
 
 @deftogether[
@@ -314,8 +320,8 @@ computerscienceminor/")
                                   [selector non-empty-string?]) (or/c false/c element?)]
    @defproc[(page-query-selector-all! [p page?]
                                       [selector non-empty-string?]) (listof element?)])]{
-  Query @racket[p] for either the first or all @racket[element?]s that
-  match the given CSS selector.
+  Queries @racket[p] for either the first or all @racket[element?]s
+  that match the given CSS selector.
 }
 
 @deftogether[
@@ -324,17 +330,17 @@ computerscienceminor/")
    @defproc[(page-alert-dismiss! [p page?]) void?]
    @defproc[(page-alert-type! [p page?]
                               [text string?]) void?])]{
-  Interact with the current prompt on @racket[p].  By default, all
+  Interacts with the current prompt on @racket[p].  By default, all
   prompts are automatically dismissed, so you won't have anything to
   interact with.  To change this, specify a different unhandled prompt
-  behavior in your @racket[capabilities?].
+  behavior in your @tech{capabilities}.
 }
 
 @defproc[(call-with-page-pdf! [page page?]
                               [proc (-> bytes? any)]) any]{
 
-  Converts @racket[page] to a PDF and passes the bytes to
-  @racket[proc].
+  Converts the contents of @racket[page] to a PDF and passes the
+  resulting bytes to @racket[proc].
 }
 
 @defproc[(call-with-page-screenshot! [page page?]
@@ -348,8 +354,13 @@ computerscienceminor/")
 
 @subsection[#:tag "reference/element"]{Element}
 
+@deftech{Elements} represent individual elements on a specific page.
+They are only valid for as long as the page they were queried from
+active. That is, if you query an element and then navigate off the page
+you got it from, it becomes invalid.
+
 @defproc[(element? [e any/c]) boolean?]{
-  Returns @racket[#t] when @racket[e] is a element.
+  Returns @racket[#t] when @racket[e] is an @tech{element}.
 }
 
 @defproc[(element=? [e1 element?]
@@ -376,7 +387,7 @@ computerscienceminor/")
                                      [selector non-empty-string?]) (or/c false/c element?)]
    @defproc[(element-query-selector-all! [e element?]
                                          [selector non-empty-string?]) (listof element?)])]{
-  Query @racket[e] for either the first or all @racket[element?]s
+  Queries @racket[e] for either the first or all @racket[element?]s
   belonging to it that match the given CSS selector.
 }
 
@@ -392,7 +403,7 @@ computerscienceminor/")
   (@defproc[(element-tag [e element?]) string?]
    @defproc[(element-text [e element?]) string?]
    @defproc[(element-rect [e element?]) rect?])]{
-  Access various @racket[e] fields.
+  Accessors for various @racket[e] fields.
 }
 
 @deftogether[
@@ -400,14 +411,22 @@ computerscienceminor/")
                                [name string?]) (or/c false/c string?)]
    @defproc[(element-property [e element?]
                               [name string?]) (or/c false/c string?)])]{
-  Retrieve @racket[e]'s attribute named @racket[name] statically and
+  Retrieves @racket[e]'s attribute named @racket[name] statically and
   dynamically, respectively.
 }
 
 @defproc[(call-with-element-screenshot! [e element?]
                                         [p (-> bytes? any)]) any]{
-  Take a screenshot of @racket[e] and call @racket[proc] with the
+  Takes a screenshot of @racket[e] and calls @racket[proc] with the
   resulting @racket[bytes?].
+}
+
+@defstruct[rect ([x real?]
+                 [y real?]
+                 [w real?]
+                 [h real?])]{
+
+  Represents an @tech{element}'s bounding client rect.
 }
 
 
@@ -424,48 +443,34 @@ computerscienceminor/")
   Contracts used by the functions in this module.
 }
 
-@defstruct[capabilities ([timeouts timeouts?]
-                         [page-load-strategy page-load-strategy/c]
-                         [unhandled-prompt-behavior unhandled-prompt-behavior/c]
-                         [accept-insecure-certs? boolean?])]{
+@deftogether[(
+  @defstruct[capabilities ([timeouts timeouts?]
+                           [page-load-strategy page-load-strategy/c]
+                           [unhandled-prompt-behavior unhandled-prompt-behavior/c]
+                           [accept-insecure-certs? boolean?])]
+  @defproc[(make-capabilities [#:timeouts timeouts timeouts? (make-timeouts)]
+                              [#:page-load-strategy page-load-strategy page-load-strategy/c 'normal]
+                              [#:unhandled-prompt-behavior unhandled-prompt-behavior unhandled-prompt-behavior/c 'dismiss-and-notify]
+                              [#:accept-insecure-certs? accept-insecure-certs? boolean? #f]) capabilities?]
+)]{
 
-  This struct is used to represent a session's capabilities.  Think of
-  these as settings/behaviors that you can tweak when you create a new
-  session via @racket[browser-connect!].
-}
-
-@defproc[(make-capabilities [#:timeouts timeouts timeouts? (make-timeouts)]
-                            [#:page-load-strategy page-load-strategy page-load-strategy/c 'normal]
-                            [#:unhandled-prompt-behavior unhandled-prompt-behavior unhandled-prompt-behavior/c 'dismiss-and-notify]
-                            [#:accept-insecure-certs? accept-insecure-certs? boolean? #f]) capabilities?]{
-
-  A convenience constructor for @racket[capabilities].
+  Represents a session's capabilities.  @deftech{Capabilities} control
+  various settings and behaviors of the sessions created via
+  @racket[browser-connect!].
 }
 
 
 @subsection[#:tag "reference/timeouts"]{Timeouts}
 
-@defstruct[timeouts ([script exact-nonnegative-integer?]
-                     [page-load exact-nonnegative-integer?]
-                     [implicit exact-nonnegative-integer?])]{
+@deftogether[(
+  @defstruct[timeouts ([script exact-nonnegative-integer?]
+                       [page-load exact-nonnegative-integer?]
+                       [implicit exact-nonnegative-integer?])]
+  @defproc[(make-timeouts [#:script script exact-nonnegative-integer? 30000]
+                          [#:page-load page-load exact-nonnegative-integer? 300000]
+                          [#:implicit implicit exact-nonnegative-integer? 0]) timeouts?]
+)]{
 
-  This struct is used to represent the browser's timeout settings.
-}
-
-@defproc[(make-timeouts [#:script script exact-nonnegative-integer? 30000]
-                        [#:page-load page-load exact-nonnegative-integer? 300000]
-                        [#:implicit implicit exact-nonnegative-integer? 0]) timeouts?]{
-
-  A convenience constructor for @racket[timeouts].
-}
-
-
-@subsection[#:tag "reference/rect"]{Rect}
-
-@defstruct[rect ([x real?]
-                 [y real?]
-                 [w real?]
-                 [h real?])]{
-
-  This struct is used to represent an element's bounding client rect.
+  @deftech{Timeouts} let you control how long the browser will wait
+  for various operations to finish before raising an exception.
 }
