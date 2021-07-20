@@ -330,10 +330,17 @@ computerscienceminor/")
   behavior in your @racket[capabilities?].
 }
 
+@defproc[(call-with-page-pdf! [page page?]
+                              [proc (-> bytes? any)]) any]{
+
+  Converts @racket[page] to a PDF and passes the bytes to
+  @racket[proc].
+}
+
 @defproc[(call-with-page-screenshot! [page page?]
                                      [proc (-> bytes? any)]
                                      [#:full? full? boolean? #t]) any]{
-  Take a screenshot of @racket[page] and call @racket[proc] with the
+  Takes a screenshot of @racket[page] and calls @racket[proc] with the
   resulting @racket[bytes?].  @racket[full?] determines whether or not
   the entire page is captured.
 }

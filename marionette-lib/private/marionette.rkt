@@ -362,6 +362,7 @@
 (define-marionette-command (WebDriver:NewSession [timeouts] [pageLoadStrategy] [unhandledPromptBehavior] [acceptInsecureCerts]))
 (define-marionette-command (WebDriver:NewWindow [focus #t] [private #f] [type "tab"]))
 (define-marionette-command (WebDriver:PerformActions actions))
+(define-marionette-command (WebDriver:Print))
 (define-marionette-command (WebDriver:Refresh))
 (define-marionette-command (WebDriver:ReleaseActions))
 (define-marionette-command (WebDriver:SendAlertText text))

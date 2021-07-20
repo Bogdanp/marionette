@@ -46,6 +46,7 @@
   [page-alert-accept! (-> page? void?)]
   [page-alert-dismiss! (-> page? void?)]
   [page-alert-type! (-> page? string? void?)]
+  [call-with-page-pdf! (-> page? (-> bytes? any) any)]
   [call-with-page-screenshot! (->* (page? (-> bytes? any))
                                    (#:full? boolean?)
                                    any)]))
@@ -305,6 +306,13 @@ SCRIPT
 
 (define (page-alert-type! p text)
   (syncv (marionette-send-alert-text! (page-marionette p) text)))
+
+(define (call-with-page-pdf! p f)
+  (with-page p
+    (f (sync
+        (handle-evt
+         (marionette-print! (page-marionette p))
+         res-value/decode)))))
 
 (define (call-with-page-screenshot! p f #:full? [full? #t])
   (with-page p
