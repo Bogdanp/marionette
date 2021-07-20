@@ -6,11 +6,11 @@
          racket/string
          racket/system
          racket/tcp
-         (only-in scribble/text include/text output)
          "browser.rkt"
          "capabilities.rkt"
          "page.rkt"
          "private/marionette.rkt"
+         "private/template.rkt"
          "rect.rkt"
          "timeouts.rkt")
 
@@ -163,9 +163,6 @@
 
 
 ;; help ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-syntax-rule (template path)
-  (output (include/text path)))
 
 (define (make-fresh-profile! command path [timeout 5000])
   (define custodian (make-custodian))

@@ -8,6 +8,7 @@
          racket/string
          "private/json.rkt"
          "private/marionette.rkt"
+         "private/template.rkt"
          "rect.rkt")
 
 
@@ -103,21 +104,8 @@
       (marionette-execute-script! (page-marionette p) s args)
       res-value))))
 
-(define (wrap-async-script s)
-  (define template
-    #<<SCRIPT
-const args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
-const resolve = arguments[arguments.length - 1];
-
-Promise
-  .resolve()
-  .then(() => (function() { ~a })(...args))
-  .then((value) => resolve({ error: null, value }))
-  .catch((error) => resolve({ error: error instanceof Error ? error.message : error, value: null }));
-SCRIPT
-    )
-
-  (format template s))
+(define (wrap-async-script body)
+  (template "support/wrap-async-script.js"))
 
 (define (page-execute-async! p s . args)
   (with-page p
@@ -175,60 +163,8 @@ SCRIPT
 (define (page-loaded? p)
   (and (member (page-readystate p) '("complete")) #t))
 
-(define wait-for-element-script #<<SCRIPT
-const [selector, timeout, mustBeVisible] = arguments;
-
-let node;
-let resolve;
-let observer;
-const res = new Promise(r => resolve = function(res) {
-  observer && observer.disconnect();
-  return r(res);
-});
-
-window.setTimeout(function() {
-  return resolve(false);
-}, timeout);
-
-bootstrap();
-return res;
-
-function bootstrap() {
-  if (node = findNode()) {
-    return resolve(node);
-  }
-
-  observer = new MutationObserver(() => {
-    if (node = findNode()) {
-      return resolve(node);
-    }
-  });
-
-  observer.observe(document.body, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-  });
-
-  return res;
-}
-
-function isVisible(node) {
-  const { visibility } = window.getComputedStyle(node) || {};
-  const { top, bottom, width, height } = node.getBoundingClientRect();
-  return visibility !== "hidden" && top && bottom && width && height;
-}
-
-function findNode() {
-  const node = document.querySelector(selector);
-  if (node && (mustBeVisible && isVisible(node) || !mustBeVisible)) {
-    return node;
-  }
-
-  return null;
-}
-SCRIPT
-  )
+(define wait-for-element-script
+  (template "support/wait-for-element.js"))
 
 (define (page-wait-for! p selector
                         #:timeout [timeout 30]
