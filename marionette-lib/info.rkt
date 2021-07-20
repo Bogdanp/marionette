@@ -1,7 +1,7 @@
 #lang info
 
 (define version "1.0")
-(define collection 'multi)
+(define collection "marionette")
 
 (define deps '("base"))
 (define build-deps '("at-exp-lib"
