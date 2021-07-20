@@ -2,7 +2,5 @@
 
 (define version "1.0")
 (define collection "marionette")
-
-(define deps '("base"))
-(define build-deps '("at-exp-lib"
-                     "marionette-lib"))
+(define deps '("base"
+               "scribble-text-lib"))

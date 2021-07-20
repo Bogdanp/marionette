@@ -29,7 +29,12 @@
   [marionette? (-> any/c boolean?)]
   [marionette-connect! (-> marionette? capabilities? jsexpr?)]
   [marionette-disconnect! (-> marionette? void?)]
-  [marionette-send! (-> marionette? non-empty-string? jsexpr? (evt/c jsexpr?))]))
+  [marionette-send! (-> marionette? non-empty-string? jsexpr? (evt/c jsexpr?))])
+
+ log-marionette-debug
+ log-marionette-info
+ log-marionette-warning
+ log-marionette-error)
 
 
 ;; errors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

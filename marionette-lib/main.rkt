@@ -1,11 +1,12 @@
-#lang at-exp racket/base
+#lang racket/base
 
 (require racket/contract
          racket/file
-         racket/format
          racket/match
          racket/string
          racket/system
+         racket/tcp
+         (only-in scribble/text include/text output)
          "browser.rkt"
          "capabilities.rkt"
          "page.rkt"
@@ -14,12 +15,6 @@
          "timeouts.rkt")
 
 (provide
- (all-from-out "browser.rkt"
-               "capabilities.rkt"
-               "page.rkt"
-               "rect.rkt"
-               "timeouts.rkt")
-
  exn:fail:marionette?
  exn:fail:marionette:command?
  exn:fail:marionette:command-stacktrace
@@ -42,9 +37,16 @@
 
  call-with-marionette!
  call-with-marionette/browser!
- call-with-marionette/browser/page!)
+ call-with-marionette/browser/page!
 
-(define FIREFOX-BIN-PATH
+ (all-from-out
+  "browser.rkt"
+  "capabilities.rkt"
+  "page.rkt"
+  "rect.rkt"
+  "timeouts.rkt"))
+
+(define firefox
   (or (find-executable-path "firefox")
       (find-executable-path "firefox-bin")
       (for/first ([path '("/Applications/Firefox Developer Edition.app/Contents/MacOS/firefox"
@@ -52,14 +54,17 @@
                   #:when (file-exists? path))
         path)))
 
-(define (start-marionette! #:command [command FIREFOX-BIN-PATH]
-                           #:profile [profile #f]
-                           #:port [port #f]
-                           #:safe-mode? [safe-mode? #t]
-                           #:headless? [headless? #t]
-                           #:timeout [timeout 5])
+(define (start-marionette!
+         #:command [command firefox]
+         #:profile [profile #f]
+         #:port [port #f]
+         #:safe-mode? [safe-mode? #t]
+         #:headless? [headless? #t]
+         #:timeout [timeout 30])
   (unless command
-    (raise-user-error 'start-marionette! "could not determine path to Firefox executable, please provide one via #:command"))
+    (raise-user-error
+     'start-marionette!
+     "could not determine path to Firefox executable~n  please provide one via #:command"))
 
   (define deadline (+ (current-seconds) timeout))
   (define delete-profile? (not profile))
@@ -69,11 +74,10 @@
     (unless (directory-exists? profile-path)
       (make-fresh-profile! command profile-path))
 
-    (with-output-to-file (build-path profile-path "prefs.js")
-      #:exists 'append
+    (with-output-to-file (build-path profile-path "user.js")
+      #:exists 'truncate/replace
       (lambda ()
-        (display @~a{user_pref("marionette.port", @|port|);
-                     }))))
+        (display (template "support/user.js")))))
 
   (define command-args
     (for/list ([arg      (list "--safe-mode" "--headless")]
@@ -89,18 +93,7 @@
            "--marionette"
            command-args))
 
-  (let loop ()
-    (with-handlers ([exn:fail?
-                     (lambda (e)
-                       (cond
-                         [(< (current-seconds) deadline)
-                          (sleep 0.1)
-                          (loop)]
-
-                         [else
-                          (raise e)]))])
-      (call-with-browser! #:port (or port 2828) void)))
-
+  (wait-for-marionette "127.0.0.1" (or port 2828) deadline)
   (lambda ()
     (control 'interrupt)
     (control 'wait)
@@ -168,6 +161,12 @@
 
      (keyword-apply call-with-marionette! kws kw-args (list p*)))))
 
+
+;; help ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-syntax-rule (template path)
+  (output (include/text path)))
+
 (define (make-fresh-profile! command path [timeout 5000])
   (define custodian (make-custodian))
   (parameterize ([current-custodian custodian])
@@ -183,11 +182,15 @@
 
     (let loop ([evt evt])
       (sync
+       (handle-evt (alarm-evt deadline) void)
        (handle-evt
-        (alarm-evt deadline)
-        void)
-       (handle-evt
-        evt
+        (nack-guard-evt
+         (λ (nack-evt)
+           (begin0 evt
+             (thread
+              (λ ()
+                (sync nack-evt)
+                (filesystem-change-evt-cancel evt))))))
         (lambda (_)
           (define evt* (filesystem-change-evt path))
           (unless (file-exists? (build-path path "prefs.js"))
@@ -196,3 +199,23 @@
     (control 'interrupt)
     (control 'wait))
   (custodian-shutdown-all custodian))
+
+(define (wait-for-marionette host port deadline)
+  (define st (current-milliseconds))
+  (let loop ([attempts 0])
+    (with-handlers ([exn:fail:network?
+                     (λ (e)
+                       (cond
+                         [(< (current-seconds) deadline)
+                          (define duration (min 0.5 (* 0.05 (expt 2 attempts))))
+                          (log-marionette-debug "wait-for-marionette: retrying connect after ~s seconds" duration)
+                          (sleep duration)
+                          (loop (add1 attempts))]
+
+                         [else
+                          (raise e)]))])
+      (define-values (in out)
+        (tcp-connect host port))
+      (close-input-port in)
+      (close-output-port out)
+      (log-marionette-debug "wait-for-marionette: connected after ~sms" (- (current-milliseconds) st)))))
