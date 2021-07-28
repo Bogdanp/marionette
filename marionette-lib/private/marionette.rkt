@@ -52,13 +52,14 @@
 
 (define-logger marionette)
 
-(struct marionette (mgr))
+(struct marionette (ch mgr))
 
 (define (make-marionette host port)
-  (marionette (make-manager host port)))
+  (define ch (make-channel))
+  (marionette ch (make-manager ch host port)))
 
 (define (marionette-connect! m c)
-  (sync (send (marionette-mgr m) connect))
+  (sync (send m connect))
   (sync (marionette-new-session! m
                                  (timeouts->jsexpr (capabilities-timeouts c))
                                  (capabilities-page-load-strategy c)
@@ -67,11 +68,11 @@
 
 (define (marionette-disconnect! m)
   (sync (marionette-delete-session! m))
-  (sync (send (marionette-mgr m) disconnect)))
+  (sync (send m disconnect)))
 
 (define (marionette-send! m command parameters)
   (handle-evt
-   (send (marionette-mgr m) send command parameters)
+   (send m send command parameters)
    (lambda (res)
      (begin0 res
        (when (exn:fail? res)
@@ -83,7 +84,7 @@
 (struct Disconnect Cmd ())
 (struct Reply Cmd (id))
 
-(define (make-manager host port)
+(define (make-manager command-ch host port)
   (thread/suspend-to-kill
    (lambda ()
      (let loop ([in #f]
@@ -99,9 +100,9 @@
        (apply
         sync
         (handle-evt
-         (thread-receive-evt)
-         (lambda (_)
-           (match (thread-receive)
+         command-ch
+         (lambda (command)
+           (match command
              [`(connect ,nack-evt ,res-ch)
               (cond
                 [connected?
@@ -239,14 +240,14 @@
             (lambda (_)
               (loop in out (remq cmd cmds) waiters next-id))))))))))
 
-(define (send* mgr cmd . args)
+(define (send* m cmd . args)
   (handle-evt
    (nack-guard-evt
     (lambda (nack-evt)
       (define res-ch (make-channel))
       (begin0 res-ch
-        (thread-resume mgr (current-thread))
-        (thread-send mgr `(,cmd ,@args ,nack-evt ,res-ch)))))
+        (thread-resume (marionette-mgr m) (current-thread))
+        (channel-put (marionette-ch m) `(,cmd ,@args ,nack-evt ,res-ch)))))
    (lambda (msg)
      (begin0 msg
        (when (exn:fail? msg)
