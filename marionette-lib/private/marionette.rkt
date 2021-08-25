@@ -78,7 +78,7 @@
        (when (exn:fail? res)
          (raise res))))))
 
-(struct Waiter (nack-evt res-ch))
+(struct Waiter (nack-evt res-ch timestamp))
 (struct Cmd (nack-evt res-ch))
 (struct Connect Cmd (host port))
 (struct Disconnect Cmd ())
@@ -121,16 +121,17 @@
                 [connected?
                  (with-handlers ([exn:fail?
                                   (lambda (e)
-                                    (log-marionette-error "failed to send command ~s with params ~.s~n  error: ~a" name params (exn-message e))
+                                    (log-marionette-error "failed to send command ~s~n  params: ~.s~n  error: ~a" name params (exn-message e))
                                     (define cmd (Reply nack-evt res-ch e))
                                     (loop in out (cons cmd cmds) waiters next-id))])
                    (define id next-id)
-                   (log-marionette-debug "sending command ~s with params ~.s and id ~s" name params id)
+                   (define ts (current-inexact-milliseconds))
+                   (log-marionette-debug "sending command ~a~n  name: ~a~n  params: ~.s" id name params)
                    (write-data (list 0 id name params) out)
-                   (loop in out cmds (hash-set waiters id (Waiter nack-evt res-ch)) (add1 id)))]
+                   (loop in out cmds (hash-set waiters id (Waiter nack-evt res-ch ts)) (add1 id)))]
 
                 [else
-                 (log-marionette-debug "failed to send command ~s with params ~.s~n  error: not connected" name params)
+                 (log-marionette-debug "failed to send command ~s~n  params ~.s~n  error: not connected" name params)
                  (define cmd (Reply nack-evt res-ch (oops 'command "not connected")))
                  (loop in out (cons cmd cmds) waiters next-id)])]
 
@@ -139,7 +140,7 @@
               (loop in out cmds waiters next-id)])))
 
         (handle-evt
-         (or (and connected? in) never-evt)
+         (if connected? in never-evt)
          (lambda (p)
            (match (read-data p)
              [(? eof-object?)
@@ -147,11 +148,12 @@
               (loop #f #f cmds waiters next-id)]
 
              [`(1 ,id ,data ,(js-null))
-              (log-marionette-debug "received error response to command ~s with data ~.s" id data)
               (cond
                 [(hash-ref waiters id #f)
                  => (match-lambda
-                      [(Waiter nack-evt res-ch)
+                      [(Waiter nack-evt res-ch timestamp)
+                       (define duration-str (~duration (- (current-inexact-milliseconds) timestamp)))
+                       (log-marionette-debug "received error response to command ~s~n  data: ~.s~n  duration: ~ams" id data duration-str)
                        (define err
                          (exn:fail:marionette:command
                           (hash-ref data 'message "")
@@ -161,20 +163,21 @@
                        (loop in out (cons cmd cmds) (hash-remove waiters id) next-id)])]
 
                 [else
-                 (log-marionette-warning "received error response to unkown waiter (~s): ~.s" id data)
+                 (log-marionette-warning "received error response to unkown command ~s: ~.s" id data)
                  (loop in out cmds waiters next-id)])]
 
              [`(1 ,id ,(js-null) ,data)
-              (log-marionette-debug "received response to command ~s with data ~.s" id data)
               (cond
                 [(hash-ref waiters id #f)
                  => (match-lambda
-                      [(Waiter nack-evt res-ch)
+                      [(Waiter nack-evt res-ch timestamp)
+                       (define duration-str (~duration (- (current-inexact-milliseconds) timestamp)))
+                       (log-marionette-debug "received response to command ~s~n  data: ~.s~n  duration: ~ams" id data duration-str)
                        (define cmd (Reply nack-evt res-ch data))
                        (loop in out (cons cmd cmds) (hash-remove waiters id) next-id)])]
 
                 [else
-                 (log-marionette-warning "received response to unknown waiter (~s): ~.s" id data)
+                 (log-marionette-warning "received response to unknown command ~s: ~.s" id data)
                  (loop in out cmds waiters next-id)])]
 
              [data
@@ -239,6 +242,9 @@
             (Cmd-nack-evt cmd)
             (lambda (_)
               (loop in out (remq cmd cmds) waiters next-id))))))))))
+
+(define (~duration ms)
+  (~r ms #:precision '(= 2)))
 
 (define (send* m cmd . args)
   (handle-evt
