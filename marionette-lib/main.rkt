@@ -2,6 +2,7 @@
 
 (require racket/contract
          racket/file
+         racket/list
          racket/match
          racket/string
          racket/system
@@ -141,21 +142,31 @@
 
 ;; shortcuts ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (kws-ref kws kw-args kw)
+  (define idx (index-of kws kw))
+  (and idx (list-ref kw-args idx)))
+
 (define call-with-marionette/browser!
   (make-keyword-procedure
    (lambda (kws kw-args p)
+     (define host (or (kws-ref kws kw-args '#:host) "127.0.0.1"))
+     (define port (or (kws-ref kws kw-args '#:port) 2828))
      (define p*
        (lambda ()
-         (call-with-browser! p)))
+         (call-with-browser! #:host host #:port port p)))
 
      (keyword-apply call-with-marionette! kws kw-args (list p*)))))
 
 (define call-with-marionette/browser/page!
   (make-keyword-procedure
    (lambda (kws kw-args p)
+     (define host (or (kws-ref kws kw-args '#:host) "127.0.0.1"))
+     (define port (or (kws-ref kws kw-args '#:port) 2828))
      (define p*
        (lambda ()
          (call-with-browser!
+           #:host host
+           #:port port
            (lambda (b)
              (call-with-page! b p)))))
 
