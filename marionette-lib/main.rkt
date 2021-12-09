@@ -96,8 +96,16 @@
 
   (wait-for-marionette "127.0.0.1" (or port 2828) deadline)
   (lambda ()
-    (control 'interrupt)
-    (control 'wait)
+    (sync
+     (thread
+      (lambda ()
+        (control 'interrupt)
+        (control 'wait)))
+     (handle-evt
+      (alarm-evt (+ (current-inexact-milliseconds) 5000))
+      (lambda (_)
+        (control 'kill)
+        (control 'wait))))
     (when delete-profile?
       (delete-directory/files profile-path))))
 
