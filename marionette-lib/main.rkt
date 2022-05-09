@@ -5,6 +5,7 @@
          racket/list
          racket/match
          racket/string
+         racket/format
          racket/system
          racket/tcp
          "browser.rkt"
@@ -58,6 +59,7 @@
 (define (start-marionette!
          #:command [command firefox]
          #:profile [profile #f]
+         #:user.js [user.js #f]
          #:port [port #f]
          #:safe-mode? [safe-mode? #t]
          #:headless? [headless? #t]
@@ -79,6 +81,24 @@
       #:exists 'truncate/replace
       (lambda ()
         (display (template "support/user.js")))))
+
+  (when (hash? user.js)
+    (with-output-to-file (build-path profile-path "user.js")
+      #:exists (if port 'append 'truncate/replace)
+      (lambda ()
+        (define (user-prefs k v)
+          (display
+           (string-append "user_prefs("
+                          (~s (if (symbol? k) (symbol->string k) k))
+                          ","
+                          (~s (cond
+                                [(symbol? v) (symbol->string v)]
+                                [(eq? v #f)  "false"]
+                                [(eq? v #t)  "true"]
+                                [else        v]))
+                          ");"))
+          (newline))
+        (hash-for-each user.js user-prefs))))
 
   (define command-args
     (for/list ([arg      (list "--safe-mode" "--headless")]
