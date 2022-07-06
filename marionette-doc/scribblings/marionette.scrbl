@@ -138,9 +138,9 @@ computerscienceminor/")
 
 @deftogether[
   (@defproc[(start-marionette! [#:command command absolute-path? "/usr/local/bin/firefox"]
-                               [#:profile profile (or/c false/c absolute-path?) #f]
-                               [#:user.js user.js (or/c false/c (hash/c string? (or/c boolean? number? string?))) #f]
-                               [#:port port (or/c false/c (integer-in 1 65535)) #f]
+                               [#:profile profile (or/c #f absolute-path?) #f]
+                               [#:user.js user.js (or/c #f (hash/c string? (or/c boolean? number? string?))) #f]
+                               [#:port port (or/c #f (integer-in 1 65535)) #f]
                                [#:safe-mode? safe-mode? boolean? #t]
                                [#:headless? headless? boolean? #t]
                                [#:timeout timeout exact-nonnegative-integer? 5]) (-> void?)]
@@ -314,7 +314,7 @@ separately.
 @defproc[(page-wait-for! [p page?]
                          [selector non-empty-string?]
                          [#:timeout timeout (and/c real? (not/c negative?)) 30]
-                         [#:visible? visible? boolean? #t]) (or/c false/c element?)]{
+                         [#:visible? visible? boolean? #t]) (or/c #f element?)]{
   Waits for an element matching the given CSS @racket[selector] to
   appear on @racket[p] or @racket[timeout] milliseconds to pass. If
   @racket[visible?] is @racket[#t], then the element must be visible on
@@ -323,7 +323,7 @@ separately.
 
 @deftogether[
   (@defproc[(page-query-selector! [p page?]
-                                  [selector non-empty-string?]) (or/c false/c element?)]
+                                  [selector non-empty-string?]) (or/c #f element?)]
    @defproc[(page-query-selector-all! [p page?]
                                       [selector non-empty-string?]) (listof element?)])]{
   Queries @racket[p] for either the first or all @racket[element?]s
@@ -400,7 +400,7 @@ you got it from, it becomes invalid.
 
 @deftogether[
   (@defproc[(element-query-selector! [e element?]
-                                     [selector non-empty-string?]) (or/c false/c element?)]
+                                     [selector non-empty-string?]) (or/c #f element?)]
    @defproc[(element-query-selector-all! [e element?]
                                          [selector non-empty-string?]) (listof element?)])]{
   Queries @racket[e] for either the first or all @racket[element?]s
@@ -424,9 +424,9 @@ you got it from, it becomes invalid.
 
 @deftogether[
   (@defproc[(element-attribute [e element?]
-                               [name string?]) (or/c false/c string?)]
+                               [name string?]) (or/c #f string?)]
    @defproc[(element-property [e element?]
-                              [name string?]) (or/c false/c string?)])]{
+                              [name string?]) (or/c #f string?)])]{
   Retrieves @racket[e]'s attribute named @racket[name] statically and
   dynamically, respectively.
 }
