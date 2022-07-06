@@ -15,5 +15,5 @@
   (syntax-rules ()
     [(_ x xs e ...)
      (add-newlines
-     (for/list ([x xs])
+      (for/list ([x xs])
         (begin/text e ...)))]))
