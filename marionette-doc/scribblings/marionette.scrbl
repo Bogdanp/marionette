@@ -139,6 +139,7 @@ computerscienceminor/")
 @deftogether[
   (@defproc[(start-marionette! [#:command command absolute-path? "/usr/local/bin/firefox"]
                                [#:profile profile (or/c false/c absolute-path?) #f]
+                               [#:user.js user.js (or/c false/c (hash/c string? (or/c boolean? number? string?))) #f]
                                [#:port port (or/c false/c (integer-in 1 65535)) #f]
                                [#:safe-mode? safe-mode? boolean? #t]
                                [#:headless? headless? boolean? #t]
@@ -155,23 +156,28 @@ computerscienceminor/")
   binary.  If not provided, the system @exec{PATH} is searched along
   with the @exec{/Applications} folder on macOS.
 
-  If @racket[profile] is @racket[#f], then a temporary path si created
-  for the profile and it it subsequently removed when the browser is
-  stopped.
+  When the @racket[#:profile] argument is @racket[#f], a temporary
+  path si created for the profile and it it subsequently removed when
+  the browser is stopped.
 
-  If @racket[port] is provided, then the @racket[profile] will be
-  modified to instruct the marionette server to listen on that port.
+  When the @racket[#:port] argument is provided, the @racket[profile]
+  will be modified to instruct the marionette server to listen on that
+  port.
 
-  @racket[call-with-marionette!] accepts the same keyword arguments
-  that @racket[start-marionette!] does.  It starts the browser,
-  applies its @racket[p] argument then immediately stops the browser.
+  When the @racket[#:user.js] argument is provided, the contents of
+  the hash will be set as preferences in the @racket[profile].
 
-  @racket[call-with-marionette/browser!] composes
+  The @racket[call-with-marionette!] procedure accepts the same
+  keyword arguments that @racket[start-marionette!] does.  It starts
+  the browser, applies its @racket[p] argument then immediately stops
+  the browser.
+
+  The @racket[call-with-marionette/browser!] procedure composes
   @racket[call-with-marionette!] and @racket[call-with-browser!]
   together.  Keyword arguments are passed through to
   @racket[start-marionette!].
 
-  @racket[call-with-marionette/browser/page!] composes
+  The @racket[call-with-marionette/browser/page!] procedure composes
   @racket[call-with-marionette/browser!] and @racket[call-with-page!]
   together.  Keyword arguments are passed through to
   @racket[start-marionette!].

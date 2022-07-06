@@ -2,6 +2,7 @@
 
 (require racket/contract
          racket/file
+         racket/format
          racket/list
          racket/match
          racket/string
@@ -24,6 +25,7 @@
   [start-marionette! (->* ()
                           (#:command absolute-path?
                            #:profile (or/c #f absolute-path?)
+                           #:user.js (or/c #f (hash/c string? (or/c boolean? number? string?)))
                            #:port (or/c #f (integer-in 1 65535))
                            #:safe-mode? boolean?
                            #:headless? boolean?
@@ -58,6 +60,7 @@
 (define (start-marionette!
          #:command [command firefox]
          #:profile [profile #f]
+         #:user.js [user.js #f]
          #:port [port #f]
          #:safe-mode? [safe-mode? #t]
          #:headless? [headless? #t]
@@ -71,8 +74,9 @@
   (define delete-profile? (not profile))
   (define profile-path (or profile (make-temporary-file "marionette~a" 'directory)))
 
-  (when port
+  (when (or user.js port)
     (unless (directory-exists? profile-path)
+      (make-directory* profile-path)
       (make-fresh-profile! command profile-path))
 
     (with-output-to-file (build-path profile-path "user.js")
@@ -235,3 +239,10 @@
       (close-input-port in)
       (close-output-port out)
       (log-marionette-debug "wait-for-marionette: connected after ~sms" (- (current-milliseconds) st)))))
+
+(define (~js v)
+  (cond
+    [(boolean? v) (if v "true" "false")]
+    [(number? v) (~r v)]
+    [(string? v) (~s v)]
+    [else (raise-argument-error '~js "(or/c boolean? number? string?)" v)]))
