@@ -12,7 +12,7 @@ jobs:
           ~/.cache/racket
           ~/.local/share/racket
         key: ${{ runner.os }}-racket-8.2
-    - uses: Bogdanp/setup-racket@v1.5
+    - uses: Bogdanp/setup-racket@v1.9
       with:
         architecture: 'x64'
         distribution: 'full'
