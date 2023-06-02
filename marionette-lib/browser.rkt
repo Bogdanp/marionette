@@ -97,7 +97,8 @@
    (handle-evt
     (marionette-get-capabilities! (browser-marionette b))
     (match-lambda
-      [(hash-table ('capabilities caps))
+      [(or (hash-table ['capabilities caps])
+           (hash-table ['value (hash-table ['capabilities caps])]))
        (jsexpr->capabilities caps)]))))
 
 (define (browser-pages b)
