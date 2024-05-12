@@ -3,9 +3,9 @@
 (require (for-syntax racket/base
                      racket/format
                      racket/syntax
-                     syntax/parse)
+                     syntax/parse/pre)
          json
-         racket/contract
+         racket/contract/base
          racket/format
          racket/list
          racket/match

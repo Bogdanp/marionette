@@ -3,7 +3,7 @@
 (require json
          net/base64
          net/url
-         racket/contract
+         racket/contract/base
          racket/match
          racket/string
          "private/browser.rkt"
@@ -34,9 +34,9 @@
   [page-go-forward! (-> page? void?)]
   [page-execute! (-> page? string? jsexpr? ... any/c)]
   [page-execute-async! (-> page? string? jsexpr? ... any/c)]
-  [page-wait-for! (->* (page? string?)
-                       (#:timeout (and/c real? (not/c negative?))
-                        #:visible? boolean?)
+  [page-wait-for! (->* [page? string?]
+                       [#:timeout (and/c real? (not/c negative?))
+                        #:visible? boolean?]
                        (or/c #f element?))]
   [page-query-selector! (-> page? string? (or/c #f element?))]
   [page-query-selector-all! (-> page? string? (listof element?))]
@@ -55,8 +55,8 @@
   [page-alert-dismiss! (-> page? void?)]
   [page-alert-type! (-> page? string? void?)]
   [call-with-page-pdf! (-> page? (-> bytes? any) any)]
-  [call-with-page-screenshot! (->* (page? (-> bytes? any))
-                                   (#:full? boolean?)
+  [call-with-page-screenshot! (->* [page? (-> bytes? any)]
+                                   [#:full? boolean?]
                                    any)]))
 
 (struct exn:fail:marionette:page exn:fail:marionette ())

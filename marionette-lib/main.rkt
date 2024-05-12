@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/contract
+(require racket/contract/base
          racket/file
          racket/format
          racket/list
@@ -22,19 +22,19 @@
  exn:fail:marionette:command-stacktrace
 
  (contract-out
-  [start-marionette! (->* ()
-                          (#:command absolute-path?
+  [start-marionette! (->* []
+                          [#:command absolute-path?
                            #:profile (or/c #f absolute-path?)
                            #:user.js (or/c #f (hash/c string? (or/c boolean? number? string?)))
                            #:port (or/c #f (integer-in 1 65535))
                            #:safe-mode? boolean?
                            #:headless? boolean?
-                           #:timeout exact-nonnegative-integer?)
+                           #:timeout exact-nonnegative-integer?]
                           (-> void?))]
-  [call-with-browser! (->* ((-> browser? any))
-                           (#:host non-empty-string?
+  [call-with-browser! (->* [(-> browser? any)]
+                           [#:host non-empty-string?
                             #:port (integer-in 1 65535)
-                            #:capabilities capabilities?)
+                            #:capabilities capabilities?]
                            any)]
   [call-with-page! (-> browser? (-> page? any) any)])
 

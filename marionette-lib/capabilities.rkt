@@ -1,7 +1,7 @@
 #lang racket/base
 
 (require json
-         racket/contract
+         racket/contract/base
          "timeouts.rkt")
 
 (provide
@@ -13,11 +13,11 @@
                         [page-load-strategy page-load-strategy/c]
                         [unhandled-prompt-behavior unhandled-prompt-behavior/c]
                         [accept-insecure-certs? boolean?])]
-  [make-capabilities (->* ()
-                          (#:timeouts timeouts?
+  [make-capabilities (->* []
+                          [#:timeouts timeouts?
                            #:page-load-strategy page-load-strategy/c
                            #:unhandled-prompt-behavior unhandled-prompt-behavior/c
-                           #:accept-insecure-certs? boolean?)
+                           #:accept-insecure-certs? boolean?]
                           capabilities?)]
   [jsexpr->capabilities (-> jsexpr? capabilities?)]))
 

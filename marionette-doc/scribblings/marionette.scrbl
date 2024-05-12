@@ -7,7 +7,7 @@
                      marionette
                      net/url
                      racket/base
-                     racket/contract
+                     racket/contract/base
                      racket/file
                      racket/math
                      racket/string))

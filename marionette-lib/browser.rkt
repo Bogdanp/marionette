@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/contract
+(require racket/contract/base
          racket/match
          racket/string
          "capabilities.rkt"
@@ -11,11 +11,11 @@
 
 (provide
  (contract-out
-  [browser? (-> any/c boolean?)]
-  [browser-connect! (->* ()
-                         (#:host non-empty-string?
+  [browser? (-> any/c boolean?)] ;; noqa
+  [browser-connect! (->* []
+                         [#:host non-empty-string?
                           #:port (integer-in 1 65535)
-                          #:capabilities capabilities?)
+                          #:capabilities capabilities?]
                          browser?)]
   [browser-disconnect! (-> browser? void?)]
   [browser-timeouts (-> browser? timeouts?)]
