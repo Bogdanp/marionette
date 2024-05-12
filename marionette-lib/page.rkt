@@ -123,7 +123,7 @@
       (marionette-execute-script! (page-marionette p) s args)
       res-value))))
 
-(define (wrap-async-script body)
+(define (wrap-async-script body) ;; noqa
   (template "support/wrap-async-script.js"))
 
 (define (page-execute-async! p s . args)

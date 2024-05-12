@@ -5,6 +5,7 @@
           scribble/example
           (for-label json
                      marionette
+                     marionette/key
                      net/url
                      racket/base
                      racket/contract/base
@@ -409,7 +410,9 @@ you got it from, it becomes invalid.
 
 @defproc[(element-type! [e element?]
                         [text string?]) void]{
-  Types @racket[text] into @racket[e].
+  Types @racket[text] into @racket[e]. To type special characters,
+  such as the ``return'' key, splice the bindings provided by the
+  @racketmod[marionette/key] module into @racket[text].
 }
 
 @deftogether[
@@ -503,4 +506,35 @@ you got it from, it becomes invalid.
 
   @deftech{Timeouts} let you control how long the browser will wait
   for various operations to finish before raising an exception.
+}
+
+
+@subsection[#:tag "reference/keys"]{Keys}
+@defmodule[marionette/key]
+
+This module provides bindings for special control characters that can
+be typed into an @tech{element} or alert. Some examples:
+
+@deftogether[(
+  @defthing[key:backspace char?]
+  @defthing[key:command char?]
+  @defthing[key:control char?]
+  @defthing[key:enter char?]
+  @defthing[key:escape char?]
+  @defthing[key:meta char?]
+  @defthing[key:shift char?]
+  @defthing[key:tab char?]
+)]{
+
+  Some of the bindings provided by this module. To see all of them,
+  run the following code at a REPL:
+
+  @racketblock[
+    (require marionette/key)
+    (map car (call-with-values
+              (lambda () (module->exports 'marionette/key))
+              (compose1 cdaar list)))
+  ]
+
+  @history[#:added "1.3"]
 }
