@@ -301,6 +301,7 @@ separately.
 @deftogether[
   (@defproc[(page-title [p page?]) string?]
    @defproc[(page-url [p page?]) url?])]{
+
   Accessors for @racket[p]'s title and url, respectively.
 }
 
@@ -338,6 +339,7 @@ separately.
   @defproc[(page-delete-cookie! [p page?] [name string?]) void?]
 )]{
 
+  Accessors and modifiers for a @racket[page]'s cookies.
 }
 
 @deftogether[
@@ -350,6 +352,18 @@ separately.
   prompts are automatically dismissed, so you won't have anything to
   interact with.  To change this, specify a different unhandled prompt
   behavior in your @tech{capabilities}.
+}
+
+@defproc[(page-switch-to-frame! [p page?]
+                                [e element?]) void?]{
+
+  Switch @racket[p]'s context to the given HTML frame element.
+}
+
+@defproc[(page-switch-to-parent-frame! [p page?]) void?]{
+
+  Switch @racket[p]'s context to the parent of the current frame. Does
+  nothing if the current frame is the root frame.
 }
 
 @defproc[(call-with-page-pdf! [page page?]

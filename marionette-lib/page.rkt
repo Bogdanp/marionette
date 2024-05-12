@@ -54,6 +54,10 @@
   [page-alert-accept! (-> page? void?)]
   [page-alert-dismiss! (-> page? void?)]
   [page-alert-type! (-> page? string? void?)]
+  [page-switch-to-frame! (->* [page? element?]
+                              [boolean?]
+                              void?)]
+  [page-switch-to-parent-frame! (-> page? void?)]
   [call-with-page-pdf! (-> page? (-> bytes? any) any)]
   [call-with-page-screenshot! (->* [page? (-> bytes? any)]
                                    [#:full? boolean?]
@@ -79,7 +83,7 @@
 (define (page-focused? p)
   (browser-current-page=? (page-browser p) p))
 
-(define (call-with-page p proc)
+(define (call-with-page p proc) ;; noqa
   (dynamic-wind
     (λ () (unless (page-focused? p)
             (sync/enable-break (marionette-switch-to-window! (page-marionette p) (page-id p)))
@@ -275,6 +279,12 @@
 
 (define (page-alert-type! p text)
   (syncv (marionette-send-alert-text! (page-marionette p) text)))
+
+(define (page-switch-to-frame! p e [focus? #t])
+  (syncv (marionette-switch-to-frame! (page-marionette p) (element-handle e) focus?)))
+
+(define (page-switch-to-parent-frame! p)
+  (syncv (marionette-switch-to-parent-frame! (page-marionette p))))
 
 (define (call-with-page-pdf! p proc)
   (with-page p
