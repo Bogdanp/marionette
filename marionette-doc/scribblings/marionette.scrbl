@@ -477,10 +477,14 @@ you got it from, it becomes invalid.
 }
 
 @deftogether[(
-  @defstruct[capabilities ([timeouts timeouts?]
-                           [page-load-strategy page-load-strategy/c]
-                           [unhandled-prompt-behavior unhandled-prompt-behavior/c]
-                           [accept-insecure-certs? boolean?])]
+  @defstruct[
+    capabilities
+    ([timeouts timeouts?]
+     [page-load-strategy page-load-strategy/c]
+     [unhandled-prompt-behavior unhandled-prompt-behavior/c]
+     [accept-insecure-certs? boolean?])
+   #:omit-constructor
+  ]
   @defproc[(make-capabilities [#:timeouts timeouts timeouts? (make-timeouts)]
                               [#:page-load-strategy page-load-strategy page-load-strategy/c 'normal]
                               [#:unhandled-prompt-behavior unhandled-prompt-behavior unhandled-prompt-behavior/c 'dismiss-and-notify]
@@ -496,9 +500,13 @@ you got it from, it becomes invalid.
 @subsection[#:tag "reference/timeouts"]{Timeouts}
 
 @deftogether[(
-  @defstruct[timeouts ([script exact-nonnegative-integer?]
-                       [page-load exact-nonnegative-integer?]
-                       [implicit exact-nonnegative-integer?])]
+  @defstruct[
+    timeouts
+    ([script exact-nonnegative-integer?]
+     [page-load exact-nonnegative-integer?]
+     [implicit exact-nonnegative-integer?])
+    #:omit-constructor
+  ]
   @defproc[(make-timeouts [#:script script exact-nonnegative-integer? 30000]
                           [#:page-load page-load exact-nonnegative-integer? 300000]
                           [#:implicit implicit exact-nonnegative-integer? 0]) timeouts?]
