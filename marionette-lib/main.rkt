@@ -91,12 +91,13 @@
       arg))
 
   (match-define (list _stdout _stdin _pid _stderr control)
-    (apply process*
-           command
-           "--profile" profile-path
-           "--no-remote"
-           "--marionette"
-           command-args))
+    (parameterize ([subprocess-group-enabled #t])
+      (apply process*
+             command
+             "--profile" profile-path
+             "--no-remote"
+             "--marionette"
+             command-args)))
 
   (wait-for-marionette "127.0.0.1" (or port 2828) deadline)
   (lambda ()
