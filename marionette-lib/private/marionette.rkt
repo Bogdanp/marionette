@@ -131,7 +131,7 @@
                    (loop in out cmds (hash-set waiters id (Waiter nack-evt res-ch ts)) (add1 id)))]
 
                 [else
-                 (log-marionette-debug "failed to send command ~s~n  params ~.s~n  error: not connected" name params)
+                 (log-marionette-debug "failed to send command ~s~n  params: ~.s~n  error: not connected" name params)
                  (define cmd (Reply nack-evt res-ch (oops 'command "not connected")))
                  (loop in out (cons cmd cmds) waiters next-id)])]
 
