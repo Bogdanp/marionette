@@ -190,7 +190,9 @@
 
 (define (make-fresh-profile! command path [timeout 5000])
   (define custodian (make-custodian))
-  (parameterize ([current-custodian custodian])
+  (parameterize ([current-custodian custodian]
+                 [current-subprocess-custodian-mode 'interrupt]
+                 [subprocess-group-enabled #t])
     (define evt (filesystem-change-evt path))
     (match-define (list _stdout _stdin _pid _stderr control)
       (process* command
@@ -222,7 +224,7 @@
   (custodian-shutdown-all custodian))
 
 (define (wait-for-marionette host port deadline)
-  (define st (current-milliseconds))
+  (define t0 (current-inexact-monotonic-milliseconds))
   (let loop ([attempts 0])
     (with-handlers ([exn:fail:network?
                      (λ (e)
@@ -239,11 +241,13 @@
         (tcp-connect host port))
       (close-input-port in)
       (close-output-port out)
-      (log-marionette-debug "wait-for-marionette: connected after ~sms" (- (current-milliseconds) st)))))
+      (log-marionette-debug
+       "wait-for-marionette: connected after ~sms"
+       (- (current-inexact-monotonic-milliseconds) t0)))))
 
 (define (~js v)
   (cond
     [(boolean? v) (if v "true" "false")]
-    [(number? v) (~r v)]
-    [(string? v) (~s v)]
+    [(number?  v) (~r v)]
+    [(string?  v) (~s v)]
     [else (raise-argument-error '~js "(or/c boolean? number? string?)" v)]))
