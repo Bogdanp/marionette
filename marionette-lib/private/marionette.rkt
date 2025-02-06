@@ -290,8 +290,11 @@
     (define normalized-name
       (string-downcase
        (regexp-replace* #rx"[A-Z]+" name:str (λ (s) (~a "-" s)))))
-
-    (format-id stx "marionette~a!" (regexp-replace #rx"[^:]*:" normalized-name "")))
+    (format-id
+     #;lctx stx
+     #;fmt "marionette~a!"
+     #;... (regexp-replace #rx"[^:]*:" normalized-name "")
+     #:source stx))
 
   (define-syntax-class param
     (pattern  name:id               #:with spec #'name)
@@ -307,7 +310,8 @@
                                            #`(cons #,key #,name))
                                          (syntax-e #'('param.name ...))
                                          (syntax-e #'(param.name ...)))])
-       #'(begin
+       (syntax/loc stx
+         (begin
            (define (name m param.spec ...)
              (marionette-send! m
                                command-name:str
@@ -318,7 +322,7 @@
                                      [(missing? (cdr pair)) #f]
                                      [else pair]))
                                  (list command-param ...)))))
-           (provide name)))]))
+           (provide name))))]))
 
 ;; Supported commands can be found here:
 ;; https://searchfox.org/mozilla-central/source/testing/marionette/driver.js#3570

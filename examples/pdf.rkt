@@ -13,5 +13,4 @@
          #:exists 'truncate/replace
          (lambda ()
            (write-bytes data)))
-
        (system* (find-executable-path "open") filename)))))
