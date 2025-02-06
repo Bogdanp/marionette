@@ -382,6 +382,16 @@ separately.
   the entire page is captured.
 }
 
+@defproc[(page-change-evt [page page?]) (evt/c void?)]{
+  Returns a synchronizable event that becomes ready for synchronization
+  when the page contents have changed (for example, when user navigates
+  to another page). The synchronization result of a page change event is
+  @racket[void]. Once a page change event has synchronized, a new event
+  must be created in order to observe new page changes.
+
+  @history[#:added "1.4"]
+}
+
 
 @subsection[#:tag "reference/element"]{Element}
 

@@ -1,10 +1,13 @@
 #lang racket/base
 
-(require json
+(require file/sha1
+         json
          net/base64
          net/url
          racket/contract/base
          racket/match
+         racket/promise
+         racket/random
          racket/string
          "private/browser.rkt"
          "private/json.rkt"
@@ -130,7 +133,10 @@
   (with-page p
     (sync
      (handle-evt
-      (marionette-execute-async-script! (page-marionette p) (wrap-async-script s) args)
+      (marionette-execute-async-script!
+       (page-marionette p)
+       (wrap-async-script s)
+       args)
       (λ (res)
         (match (hash-ref res 'value)
           [(hash-table ('error (js-null))
@@ -301,6 +307,26 @@
       (handle-evt
        (marionette-take-screenshot! (page-marionette p) full?)
        res-value/decode)))))
+
+
+;; page-change-evt ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(provide
+ page-change-evt)
+
+(define (page-change-evt p)
+  (define token (bytes->hex-string (crypto-random-bytes 32)))
+  (page-execute! p (template "support/set-page-change-token.js") token)
+  (log-marionette-debug "set PageChangeToken=~s" token)
+  (handle-evt
+   (delay/thread
+    (let loop ()
+      (define current (page-execute! p (template "support/get-page-change-token.js")))
+      (log-marionette-debug "get PageChangeToken=~a" current)
+      (when (equal? current token)
+        (sleep 0.1)
+        (loop))))
+   void))
 
 
 ;; element ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
