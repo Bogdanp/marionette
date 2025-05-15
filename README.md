@@ -1,6 +1,6 @@
 # marionette
 
-[![CI](https://github.com/Bogdanp/marionette/actions/workflows/ci.yml/badge.svg)](https://github.com/Bogdanp/marionette/actions/workflows/ci.yml)
+[![.github/workflows/push.yml](https://github.com/Bogdanp/marionette/actions/workflows/push.yml/badge.svg)](https://github.com/Bogdanp/marionette/actions/workflows/push.yml)
 
 A Racket library that lets you control Firefox via the [Marionette
 Protocol].
