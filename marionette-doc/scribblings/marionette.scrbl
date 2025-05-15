@@ -382,16 +382,36 @@ separately.
   the entire page is captured.
 }
 
+@defproc[(page-change-evt? [v any/c]) boolean?]{
+  Returns @racket[#t] when @racket[v] is a page change event.
+}
+
 @defproc[(page-change-evt [page page?]) (evt/c void?)]{
   Returns a synchronizable event that becomes ready for synchronization
-  when the page contents have changed (for example, when user navigates
-  to another page). The synchronization result of a page change event is
-  @racket[void]. Once a page change event has synchronized, a new event
-  must be created in order to observe new page changes.
+  when the page contents have changed (for example, when the user
+  navigates to another page). The synchronization result of a page
+  change event is @racket[void]. Once a page change event has
+  synchronized, a new event must be created in order to observe further
+  page changes.
+
+  When selected for synchronization, a page change event spawns a
+  background thread to poll the page for changes. The thread will run
+  until either the event is abandoned, the page changes, or the page
+  change event is garbage-collected. When synchronizing with a timeout,
+  if the synchronization times out, you @emph{must} abandon the page
+  change event before performing any further page actions to avoid
+  concurrency issues.
 
   @history[#:added "1.4"]
 }
 
+@defproc[(abandon-page-change-evt [evt page-change-evt?]) void?]{
+  Abandons the page change event @racket[evt]. The event will stop
+  polling after its next iteration. Synchronize the event after
+  abandoning it to ensure that
+
+  @history[#:added "1.5"]
+}
 
 @subsection[#:tag "reference/element"]{Element}
 

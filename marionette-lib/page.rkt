@@ -6,10 +6,10 @@
          net/url
          racket/contract/base
          racket/match
-         racket/promise
          racket/random
          racket/string
          "private/browser.rkt"
+         "private/executor.rkt"
          "private/json.rkt"
          "private/marionette.rkt"
          "private/template.rkt"
@@ -312,22 +312,40 @@
 ;; page-change-evt ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide
- page-change-evt)
+ page-change-evt?
+ page-change-evt
+ abandon-page-change-evt)
+
+(struct page-change-evt (p token [abandoned? #:mutable])
+  #:name -page-change-evt
+  #:constructor-name -page-change-evt
+  #:property prop:evt
+  (lambda (e)
+    (match-define (-page-change-evt p token _) e)
+    (guard-evt
+     (lambda ()
+       (unless (page-change-evt-abandoned? e)
+         (thread
+          (lambda ()
+            (let loop ()
+              (unless (page-change-evt-abandoned? e)
+                (define current (page-execute! p (template "support/get-page-change-token.js")))
+                (log-marionette-debug "get PageChangeToken=~a" current)
+                (when (equal? current token)
+                  (sleep 0.05)
+                  (loop)))))))))))
 
 (define (page-change-evt p)
   (define token (bytes->hex-string (crypto-random-bytes 32)))
   (page-execute! p (template "support/set-page-change-token.js") token)
   (log-marionette-debug "set PageChangeToken=~s" token)
-  (handle-evt
-   (delay/thread
-    (let loop ()
-      (define current (page-execute! p (template "support/get-page-change-token.js")))
-      (log-marionette-debug "get PageChangeToken=~a" current)
-      (when (equal? current token)
-        (sleep 0.1)
-        (loop))))
-   void))
+  (define evt (-page-change-evt p token #f))
+  (will-register executor evt abandon-page-change-evt)
+  evt)
 
+(define (abandon-page-change-evt e)
+  (set-page-change-evt-abandoned?! e #t)
+  (sync/enable-break e))
 
 ;; element ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

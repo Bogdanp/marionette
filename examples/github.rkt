@@ -12,6 +12,7 @@
   (system* (find-executable-path "open") filename))
 
 (call-with-marionette/browser/page!
+ #:headless? #f
  (lambda (p)
    (page-goto! p "https://github.com")
    (element-click! (page-wait-for! p "button.header-search-button"))
@@ -23,7 +24,8 @@
    (element-type! search-bar (string key:return))
 
    (define results-list
-     (page-wait-for! p "[data-test-id=results-list]"))
+     (page-wait-for! p "[data-testid=results-list]"))
 
    (call-with-page-screenshot! p save&open)
-   (call-with-element-screenshot! results-list save&open)))
+   (when results-list
+     (call-with-element-screenshot! results-list save&open))))

@@ -33,7 +33,11 @@
      (element-click! (page-wait-for! p ".continue-button"))
      (println (page-url p))
      (println `(sync-result ,(sync e)))
-     (println (page-url p)))))
+     (println (page-url p))
+     (println `(sync-result ,(sync e)))
+     (define e2 (page-change-evt p))
+     (abandon-page-change-evt e2)
+     (println `(timeout-result ,(sync/timeout 1 e2))))))
 
 (module+ main
   (require racket/async-channel
