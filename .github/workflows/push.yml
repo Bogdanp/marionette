@@ -1,18 +1,10 @@
 on: [push, pull_request]
-name: CI
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - name: Cache Racket dependencies
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cache/racket
-          ~/.local/share/racket
-        key: ${{ runner.os }}-racket-8.2
-    - uses: Bogdanp/setup-racket@v1.9
+    - uses: Bogdanp/setup-racket@v1.13
       with:
         architecture: 'x64'
         distribution: 'full'
