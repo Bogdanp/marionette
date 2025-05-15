@@ -407,8 +407,7 @@ separately.
 
 @defproc[(abandon-page-change-evt [evt page-change-evt?]) void?]{
   Abandons the page change event @racket[evt]. The event will stop
-  polling after its next iteration. Synchronize the event after
-  abandoning it to ensure that
+  polling after its next iteration.
 
   @history[#:added "1.5"]
 }
