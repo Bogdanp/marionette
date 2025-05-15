@@ -459,6 +459,10 @@ you got it from, it becomes invalid.
    @defproc[(element-visible? [e element?]) boolean?])]{
   Returns @racket[#t] if @racket[e] is enabled, selected or visible,
   respectively.
+
+  The @racket[element-selected?] predicate only works when @racket[e] is
+  an @tt{input} element of type @tt{checkbox} or @tt{radio}, or if it is
+  an @tt{option} element.
 }
 
 @deftogether[
