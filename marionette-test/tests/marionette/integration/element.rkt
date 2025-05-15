@@ -113,13 +113,12 @@
               (define e (page-query-selector! p "input"))
               (check-false (element-selected? e)))))))
 
-    #;
     (test-case "returns #t if an element is selected"
       (call-with-browser!
         (lambda (b)
           (call-with-page! b
             (lambda (p)
-              (set-page-content! p "<input type=\"text\">")
+              (set-page-content! p "<input type=\"checkbox\">")
               (define e (page-query-selector! p "input"))
               (element-click! e)
               (check-true (element-selected? e))))))))
