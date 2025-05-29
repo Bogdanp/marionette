@@ -389,10 +389,10 @@ separately.
 @defproc[(page-change-evt [page page?]) (evt/c void?)]{
   Returns a synchronizable event that becomes ready for synchronization
   when the page contents have changed (for example, when the user
-  navigates to another page). The synchronization result of a page
-  change event is @racket[void]. Once a page change event has
-  synchronized, a new event must be created in order to observe further
-  page changes.
+  navigates to another page). The synchronization result of a
+  @deftech{page change event} is @racket[void]. Once a page change
+  event has synchronized, a new event must be created in order to
+  observe further page changes.
 
   When selected for synchronization, a page change event spawns a
   background thread to poll the page for changes. The thread will run
@@ -410,6 +410,16 @@ separately.
   polling after its next iteration.
 
   @history[#:added "1.5"]
+}
+
+@defproc[(call-with-page-change-evt [p page?] [proc (-> page-change-evt? any)]) any]{
+  Calls @racket[proc] with a @tech{page change event} for @racket[p],
+  abandoning it when @racket[proc] returns or whenever control escapes
+  the dynamic extent of the call. Whenever control re-enters the dynamic
+  extent of a call to @racket[call-with-page-change-evt], a new page
+  change event is created.
+
+  @history[#:added "1.6"]
 }
 
 @subsection[#:tag "reference/element"]{Element}

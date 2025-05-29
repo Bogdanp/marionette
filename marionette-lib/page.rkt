@@ -314,7 +314,8 @@
 (provide
  page-change-evt?
  page-change-evt
- abandon-page-change-evt)
+ abandon-page-change-evt
+ call-with-page-change-evt)
 
 (struct page-change-evt (p token [abandoned? #:mutable])
   #:name -page-change-evt
@@ -346,6 +347,16 @@
 (define (abandon-page-change-evt e)
   (set-page-change-evt-abandoned?! e #t)
   (sync/enable-break e))
+
+(define (call-with-page-change-evt p proc)
+  (define e #f)
+  (dynamic-wind
+    (lambda ()
+      (set! e (page-change-evt p)))
+    (lambda ()
+      (proc e))
+    (lambda ()
+      (abandon-page-change-evt e))))
 
 ;; element ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
