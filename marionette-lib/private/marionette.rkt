@@ -60,11 +60,12 @@
 
 (define (marionette-connect! m c)
   (sync (send m connect))
-  (sync (marionette-new-session! m
-                                 (timeouts->jsexpr (capabilities-timeouts c))
-                                 (capabilities-page-load-strategy c)
-                                 (capabilities-unhandled-prompt-behavior c)
-                                 (capabilities-accept-insecure-certs? c))))
+  (sync (marionette-new-session!
+         m
+         (timeouts->jsexpr (capabilities-timeouts c))
+         (capabilities-page-load-strategy c)
+         (capabilities-unhandled-prompt-behavior c)
+         (capabilities-accept-insecure-certs? c))))
 
 (define (marionette-disconnect! m)
   (sync (marionette-delete-session! m))
@@ -325,7 +326,7 @@
            (provide name))))]))
 
 ;; Supported commands can be found here:
-;; https://searchfox.org/mozilla-central/source/testing/marionette/driver.js#3570
+;; https://searchfox.org/mozilla-central/source/remote/marionette/driver.sys.mjs
 (define-marionette-command (WebDriver:AcceptAlert))
 (define-marionette-command (WebDriver:AddCookie cookie))
 (define-marionette-command (WebDriver:Back))
@@ -341,16 +342,16 @@
 (define-marionette-command (WebDriver:ExecuteAsyncScript script [args null]))
 (define-marionette-command (WebDriver:ExecuteScript script [args null]))
 (define-marionette-command (WebDriver:FindElement value [element] [using "css selector"]))
+(define-marionette-command (WebDriver:FindElementFromShadowRoot shadowRoot value [using "css selector"]))
 (define-marionette-command (WebDriver:FindElements value [element] [using "css selector"]))
+(define-marionette-command (WebDriver:FindElementsFromShadowRoot shadowRoot value [using "css selector"]))
 (define-marionette-command (WebDriver:Forward))
 (define-marionette-command (WebDriver:FullscreenWindow))
 (define-marionette-command (WebDriver:GetActiveElement))
 (define-marionette-command (WebDriver:GetAlertText))
-(define-marionette-command (WebDriver:GetCapabilities))
-(define-marionette-command (WebDriver:GetChromeWindowHandle))
-(define-marionette-command (WebDriver:GetChromeWindowHandles))
+(define-marionette-command (WebDriver:GetComputedLabel id))
+(define-marionette-command (WebDriver:GetComputedRole id))
 (define-marionette-command (WebDriver:GetCookies))
-(define-marionette-command (WebDriver:GetCurrentChromeWindowHandle))
 (define-marionette-command (WebDriver:GetCurrentURL))
 (define-marionette-command (WebDriver:GetElementAttribute id name))
 (define-marionette-command (WebDriver:GetElementCSSValue id propertyName))
@@ -359,6 +360,7 @@
 (define-marionette-command (WebDriver:GetElementTagName id))
 (define-marionette-command (WebDriver:GetElementText id))
 (define-marionette-command (WebDriver:GetPageSource))
+(define-marionette-command (WebDriver:GetShadowRoot id))
 (define-marionette-command (WebDriver:GetTimeouts))
 (define-marionette-command (WebDriver:GetTitle))
 (define-marionette-command (WebDriver:GetWindowHandle))
@@ -379,9 +381,7 @@
 (define-marionette-command (WebDriver:SendAlertText text))
 (define-marionette-command (WebDriver:SetTimeouts script pageLoad implicit))
 (define-marionette-command (WebDriver:SetWindowRect width height))
-(define-marionette-command (WebDriver:Status))
 (define-marionette-command (WebDriver:SwitchToFrame id [focus #t]))
 (define-marionette-command (WebDriver:SwitchToParentFrame))
-(define-marionette-command (WebDriver:SwitchToShadowRoot id))
 (define-marionette-command (WebDriver:SwitchToWindow handle [focus #t]))
 (define-marionette-command (WebDriver:TakeScreenshot full [id] [hash #f]))

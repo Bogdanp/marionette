@@ -7,19 +7,21 @@
 (provide
  page-load-strategy/c
  unhandled-prompt-behavior/c
-
  (contract-out
-  [struct capabilities ([timeouts timeouts?]
-                        [page-load-strategy page-load-strategy/c]
-                        [unhandled-prompt-behavior unhandled-prompt-behavior/c]
-                        [accept-insecure-certs? boolean?])]
-  [make-capabilities (->* []
-                          [#:timeouts timeouts?
-                           #:page-load-strategy page-load-strategy/c
-                           #:unhandled-prompt-behavior unhandled-prompt-behavior/c
-                           #:accept-insecure-certs? boolean?]
-                          capabilities?)]
-  [jsexpr->capabilities (-> jsexpr? capabilities?)]))
+  [struct capabilities
+    ([timeouts timeouts?]
+     [page-load-strategy page-load-strategy/c]
+     [unhandled-prompt-behavior unhandled-prompt-behavior/c]
+     [accept-insecure-certs? boolean?])]
+  [make-capabilities
+   (->* []
+        [#:timeouts timeouts?
+         #:page-load-strategy page-load-strategy/c
+         #:unhandled-prompt-behavior unhandled-prompt-behavior/c
+         #:accept-insecure-certs? boolean?]
+        capabilities?)]
+  [jsexpr->capabilities
+   (-> jsexpr? capabilities?)]))
 
 (define page-load-strategy/c
   (or/c 'none 'eager 'normal "none" "eager" "normal"))
