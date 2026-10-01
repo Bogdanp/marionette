@@ -210,7 +210,7 @@
           (call-with-page! b
             (lambda (p)
               (page-goto! p "https://example.com")
-              (define e (page-query-selector! p "h1"))
+              (define e (page-query-selector! p "p"))
               (call-with-element-screenshot! e
                 (lambda (data)
                   (check-true (> (bytes-length data) 0))))))))))))

@@ -115,7 +115,7 @@ SCRIPT
           (call-with-page! b
             (lambda (p)
               (page-goto! p "https://example.com")
-              (check-not-false (page-query-selector! p "h1"))))))))
+              (check-not-false (page-query-selector! p "p"))))))))
 
    (test-suite
     "page-query-selector-all!"
@@ -126,7 +126,7 @@ SCRIPT
           (call-with-page! b
             (lambda (p)
               (page-goto! p "https://example.com")
-              (check-true (> (length (page-query-selector-all! p "h1")) 0))))))))
+              (check-true (> (length (page-query-selector-all! p "p")) 0))))))))
 
    (test-suite
     "page-content"
