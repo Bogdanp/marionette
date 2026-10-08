@@ -60,12 +60,18 @@
 
 (define (marionette-connect! m c)
   (sync (send m connect))
-  (sync (marionette-new-session!
-         m
-         (timeouts->jsexpr (capabilities-timeouts c))
-         (capabilities-page-load-strategy c)
-         (capabilities-unhandled-prompt-behavior c)
-         (capabilities-accept-insecure-certs? c))))
+  (define new-session-evt
+    (marionette-new-session!
+     m
+     (timeouts->jsexpr (capabilities-timeouts c))
+     (capabilities-page-load-strategy c)
+     (capabilities-unhandled-prompt-behavior c)
+     (capabilities-accept-insecure-certs? c)))
+  (define maybe-res
+    (sync/timeout 5 new-session-evt))
+  (unless maybe-res
+    (oops 'marionette-connect! "timed out while waiting for new session"))
+  maybe-res)
 
 (define (marionette-disconnect! m)
   (sync (marionette-delete-session! m))
