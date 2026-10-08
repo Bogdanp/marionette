@@ -3,7 +3,6 @@
 (require racket/contract/base
          racket/file
          racket/format
-         racket/list
          racket/match
          racket/string
          racket/system
@@ -17,9 +16,9 @@
          "timeouts.rkt")
 
 (provide
- exn:fail:marionette?
- exn:fail:marionette:command?
- exn:fail:marionette:command-stacktrace
+ exn:fail:marionette? ;; noqa
+ exn:fail:marionette:command? ;; noqa
+ exn:fail:marionette:command-stacktrace ;; noqa
 
  (contract-out
   [start-marionette! (->* []
@@ -57,10 +56,15 @@
                   #:when (file-exists? path))
         path)))
 
+(define (make-temporary-profile-directory-path)
+  (define path (make-temporary-file "marionette~a" 'directory))
+  (delete-directory path)
+  path)
+
 (define (start-marionette!
          #:command [command firefox]
          #:profile [profile #f]
-         #:user.js [user.js #f]
+         #:user.js [user.js #f] ;; noqa
          #:port [port #f]
          #:safe-mode? [safe-mode? #t]
          #:headless? [headless? #t]
@@ -71,27 +75,31 @@
      "could not determine path to Firefox executable~n  please provide one via #:command"))
 
   (define deadline (+ (current-seconds) timeout))
+  (define profile-path (or profile (make-temporary-profile-directory-path)))
   (define delete-profile? (not profile))
-  (define profile-path (or profile (make-temporary-file "marionette~a" 'directory)))
 
-  (when (or user.js port)
-    (unless (directory-exists? profile-path)
-      (make-directory* profile-path)
-      (make-fresh-profile! command profile-path))
-
-    (with-output-to-file (build-path profile-path "user.js")
-      #:exists 'truncate/replace
-      (lambda ()
-        (display (template "support/user.js")))))
+  (unless (directory-exists? profile-path)
+    (log-marionette-debug "creating profile @ ~s" profile-path)
+    (make-directory* profile-path)
+    (make-fresh-profile! command profile-path))
+  (log-marionette-debug "installing user.js")
+  (call-with-output-file (build-path profile-path "user.js")
+    #:exists 'truncate/replace
+    (lambda (out)
+      (write-string (template "support/user.js") out)))
 
   (define command-args
-    (for/list ([arg      (list "--safe-mode" "--headless")]
-               [enabled? (list    safe-mode?    headless?)]
+    (for/list ([arg      (in-list (list "--safe-mode" "--headless"))]
+               [enabled? (in-list (list    safe-mode?    headless?))]
                #:when enabled?)
       arg))
 
+  (define custodian (make-custodian))
   (match-define (list _stdout _stdin _pid _stderr control)
-    (parameterize ([subprocess-group-enabled #t])
+    (parameterize ([current-custodian custodian]
+                   [current-subprocess-custodian-mode 'kill]
+                   [current-subprocess-keep-file-descriptors null]
+                   [subprocess-group-enabled #t])
       (apply process*
              command
              "--profile" profile-path
@@ -112,7 +120,8 @@
         (control 'kill)
         (control 'wait))))
     (when delete-profile?
-      (delete-directory/files profile-path))))
+      (delete-directory/files profile-path)
+      (custodian-shutdown-all custodian))))
 
 (define call-with-marionette!
   (make-keyword-procedure
@@ -155,35 +164,35 @@
 
 ;; shortcuts ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (kws-ref kws kw-args kw)
-  (define idx (index-of kws kw))
-  (and idx (list-ref kw-args idx)))
+(define (kws-ref kws kw-args needle)
+  (for/first ([kw (in-list kws)]
+              [kw-arg (in-list kw-args)]
+              #:when (equal? kw needle))
+    kw-arg))
 
 (define call-with-marionette/browser!
   (make-keyword-procedure
-   (lambda (kws kw-args p)
+   (lambda (kws kw-args proc)
      (define host (or (kws-ref kws kw-args '#:host) "127.0.0.1"))
      (define port (or (kws-ref kws kw-args '#:port) 2828))
-     (define p*
+     (define proc*
        (lambda ()
-         (call-with-browser! #:host host #:port port p)))
-
-     (keyword-apply call-with-marionette! kws kw-args (list p*)))))
+         (call-with-browser! #:host host #:port port proc)))
+     (keyword-apply call-with-marionette! kws kw-args (list proc*)))))
 
 (define call-with-marionette/browser/page!
   (make-keyword-procedure
-   (lambda (kws kw-args p)
+   (lambda (kws kw-args proc)
      (define host (or (kws-ref kws kw-args '#:host) "127.0.0.1"))
      (define port (or (kws-ref kws kw-args '#:port) 2828))
-     (define p*
+     (define proc*
        (lambda ()
          (call-with-browser!
            #:host host
            #:port port
            (lambda (b)
-             (call-with-page! b p)))))
-
-     (keyword-apply call-with-marionette! kws kw-args (list p*)))))
+             (call-with-page! b proc)))))
+     (keyword-apply call-with-marionette! kws kw-args (list proc*)))))
 
 
 ;; help ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -245,7 +254,7 @@
        "wait-for-marionette: connected after ~sms"
        (- (current-inexact-monotonic-milliseconds) t0)))))
 
-(define (~js v)
+(define (~js v) ;; noqa
   (cond
     [(boolean? v) (if v "true" "false")]
     [(number?  v) (~r v)]
